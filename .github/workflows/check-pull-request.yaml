@@ -19,6 +19,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Create Coverage Directory
+        run: mkdir -p -m 777 coverage
+
       - name: Test code and Create Test Coverage Reports
         uses: actions/setup-node@v4
         with:
