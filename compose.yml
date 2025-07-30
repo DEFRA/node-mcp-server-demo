@@ -65,7 +65,7 @@ services:
   #   networks:
   #     - cdp-tenant
 
-  cdp-node-backend-template:
+  node-mcp-server-demo:
     build:
       context: .
       target: development
