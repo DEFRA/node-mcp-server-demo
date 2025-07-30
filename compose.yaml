@@ -16,7 +16,8 @@ services:
       - ./src/:/home/node/src
       - ./package.json:/home/node/package.json
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       PORT: 3000
       PORT_DEBUG: 9232
