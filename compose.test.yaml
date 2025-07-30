@@ -1,0 +1,21 @@
+services:
+  node-mcp-server-demo:
+    build:
+      target: development
+    image: node-mcp-server-demo-development
+    container_name: node-mcp-server-demo-test
+    command: npm run test
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PORT: 3000
+      NODE_ENV: development
+      MONGO_URI: mongodb://mongodb:27017/
+    volumes:
+      - ./src/:/home/node/src
+      - ./test/:/home/node/test
+      - ./package.json:/home/node/package.json
+      - ./coverage:/home/node/coverage
+    networks:
+      - ai-tech-radar
