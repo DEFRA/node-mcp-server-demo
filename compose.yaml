@@ -14,6 +14,7 @@ services:
         condition: service_started
     volumes:
       - ./src/:/home/node/src
+      - ./data/:/home/node/data
       - ./package.json:/home/node/package.json
     env_file:
       - path: .env
@@ -23,6 +24,8 @@ services:
       PORT_DEBUG: 9232
       NODE_ENV: development
       MONGO_URI: mongodb://mongodb:27017/
+      MCP_ENABLED: true
+      MCP_NOTES_DIR: /home/node/data/notes
     networks:
       - ai-tech-radar
 
