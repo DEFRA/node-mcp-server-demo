@@ -106,20 +106,6 @@ const serverConfig = {
       env: 'TRACING_HEADER'
     }
   },
-  mcp: {
-    enabled: {
-      doc: 'Enable MCP server',
-      format: Boolean,
-      default: true,
-      env: 'MCP_ENABLED'
-    },
-    notesDirectory: {
-      doc: 'Directory to store note files',
-      format: String,
-      default: path.resolve(dirname, '../../data/notes'),
-      env: 'MCP_NOTES_DIR'
-    }
-  }
 }
 
 export {
