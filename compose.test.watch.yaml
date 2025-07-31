@@ -1,0 +1,3 @@
+services:
+  node-mcp-server-demo:
+    command: npm run test:watch

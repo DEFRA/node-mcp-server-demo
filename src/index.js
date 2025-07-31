@@ -1,7 +1,10 @@
 import process from 'node:process'
 
-import { createLogger } from './common/helpers/logging/logger.js'
-import { startServer } from './common/helpers/start-server.js'
+import { startServer } from './api/server.js'
+import { createLogger } from './common/logging/logger.js'
+import { setupProxy } from './common/proxy/setup-proxy.js'
+
+setupProxy()
 
 await startServer()
 

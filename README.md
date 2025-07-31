@@ -7,22 +7,15 @@ Core delivery platform Node.js Backend Template.
 - [Local development](#local-development)
   - [Setup](#setup)
   - [Development](#development)
-  - [Testing](#testing)
   - [Production](#production)
   - [Npm scripts](#npm-scripts)
-  - [Update dependencies](#update-dependencies)
   - [Formatting](#formatting)
-    - [Windows prettier issue](#windows-prettier-issue)
 - [API endpoints](#api-endpoints)
-- [Development helpers](#development-helpers)
-  - [MongoDB Locks](#mongodb-locks)
-  - [Proxy](#proxy)
+- [Calling API endpoints](#calling-api-endpoints)
+  - [Postman](#postman)
 - [Docker](#docker)
-  - [Development image](#development-image)
-  - [Production image](#production-image)
-  - [Docker Compose](#docker-compose)
-  - [Dependabot](#dependabot)
-  - [SonarCloud](#sonarcloud)
+  - [Development Image](#development-image)
+  - [Production Image](#production-image)
 - [Licence](#licence)
   - [About the licence](#about-the-licence)
 
@@ -30,7 +23,7 @@ Core delivery platform Node.js Backend Template.
 
 ### Node.js
 
-Please install [Node.js](http://nodejs.org/) `>= v22` and [npm](https://nodejs.org/) `>= v11`. You will find it
+Please install [Node.js](http://nodejs.org/) `>= v22` and [npm](https://nodejs.org/) `>= v9`. You will find it
 easier to use the Node Version Manager [nvm](https://github.com/creationix/nvm)
 
 To use the correct version of Node.js for this application, via nvm:
@@ -43,6 +36,11 @@ nvm use
 ## Local development
 
 ### Setup
+Create a `.env` file in the root of the project directory.
+
+```bash
+touch .env
+```
 
 Install application dependencies:
 
@@ -76,41 +74,12 @@ npm start
 
 ### Npm scripts
 
-All available Npm scripts can be seen in [package.json](./package.json).
+All available Npm scripts can be seen in [package.json](./package.json)
 To view them in your command line run:
 
 ```bash
 npm run
 ```
-
-### Update dependencies
-
-To update dependencies use [npm-check-updates](https://github.com/raineorshine/npm-check-updates):
-
-> The following script is a good start. Check out all the options on
-> the [npm-check-updates](https://github.com/raineorshine/npm-check-updates)
-
-```bash
-ncu --interactive --format group
-```
-
-### Formatting
-
-#### Windows prettier issue
-
-If you are having issues with formatting of line breaks on Windows update your global git config by running:
-
-```bash
-git config --global core.autocrlf false
-```
-
-## API endpoints
-
-| Endpoint             | Description                    |
-| :------------------- | :----------------------------- |
-| `GET: /health`       | Health                         |
-| `GET: /example    `  | Example API (remove as needed) |
-| `GET: /example/<id>` | Example API (remove as needed) |
 
 ## Development helpers
 
@@ -157,28 +126,6 @@ async function doStuff(server) {
 
 Helper methods are also available in `/src/helpers/mongo-lock.js`.
 
-### Proxy
-
-We are using forward-proxy which is set up by default. To make use of this: `import { fetch } from 'undici'` then
-because of the `setGlobalDispatcher(new ProxyAgent(proxyUrl))` calls will use the ProxyAgent Dispatcher
-
-If you are not using Wreck, Axios or Undici or a similar http that uses `Request`. Then you may have to provide the
-proxy dispatcher:
-
-To add the dispatcher to your own client:
-
-```javascript
-import { ProxyAgent } from 'undici'
-
-return await fetch(url, {
-  dispatcher: new ProxyAgent({
-    uri: proxyUrl,
-    keepAliveTimeout: 10,
-    keepAliveMaxTimeout: 10
-  })
-})
-```
-
 ## Docker
 
 ### Development image
@@ -192,7 +139,7 @@ docker build --target development --no-cache --tag node-mcp-server-demo:developm
 Run:
 
 ```bash
-docker run -e PORT=3001 -p 3001:3001 node-mcp-server-demo:development
+docker run -e PORT=3000 -p 3000:3000 node-mcp-server-demo:development
 ```
 
 ### Production image
@@ -206,7 +153,7 @@ docker build --no-cache --tag node-mcp-server-demo .
 Run:
 
 ```bash
-docker run -e PORT=3001 -p 3001:3001 node-mcp-server-demo
+docker run -e PORT=3000 -p 3000:3000 node-mcp-server-demo
 ```
 
 ### Docker Compose
@@ -222,15 +169,6 @@ A local environment with:
 ```bash
 docker compose up --build -d
 ```
-
-### Dependabot
-
-We have added an example dependabot configuration file to the repository. You can enable it by renaming
-the [.github/example.dependabot.yml](.github/example.dependabot.yml) to `.github/dependabot.yml`
-
-### SonarCloud
-
-Instructions for setting up SonarCloud can be found in [sonar-project.properties](./sonar-project.properties)
 
 ## Licence
 

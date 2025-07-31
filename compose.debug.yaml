@@ -1,0 +1,8 @@
+
+services:
+  node-mcp-server-demo:
+    command: npm run start:debug
+
+networks:
+  ai-tech-radar:
+    driver: bridge
