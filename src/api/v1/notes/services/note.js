@@ -1,211 +1,148 @@
+import { InvalidNoteDataError, NoteNotFoundError } from '../../../../common/errors/domain-errors.js'
 import { createLogger } from '../../../../common/logging/logger.js'
-import { NoteNotFoundError } from '../../../../data/repositories/note.js'
 
 /**
- * Service class for note operations following established service patterns
- * Provides business logic layer for note management
+ * Note Service
+ * Handles note-related business logic using the repository pattern
  */
 class NoteService {
   constructor(noteRepository) {
-    if (!noteRepository) {
-      throw new Error('Note repository is required')
-    }
     this.noteRepository = noteRepository
     this.logger = createLogger()
   }
 
   /**
    * Create a new note
-   * @param {Object} noteData - Note creation data
-   * @param {string} noteData.title - Note title
-   * @param {string} noteData.content - Note content
-   * @returns {Promise<Object>} Created note details
+   * @param {Object} noteData - The note data
+   * @param {string} noteData.title - The note title
+   * @param {string} noteData.content - The note content
+   * @returns {Promise<Object>} The created note
+   * @throws {InvalidNoteDataError} When note data is invalid
    */
-  async createNote({ title, content }) {
+  async createNote(noteData) {
     try {
-      // Validate input
-      if (!title || typeof title !== 'string' || title.trim().length === 0) {
-        throw new Error('Note title is required and must be a non-empty string')
-      }
+      this.logger.debug('Creating new note:', { title: noteData.title })
       
-      if (typeof content !== 'string') {
-        throw new Error('Note content must be a string')
+      // Validate required fields
+      if (!noteData.title || !noteData.content) {
+        throw new InvalidNoteDataError('Title and content are required')
       }
 
-      // Create note through repository
-      const note = await this.noteRepository.create({ title: title.trim(), content })
+      // Delegate to repository
+      const note = await this.noteRepository.create(noteData)
       
-      this.logger.info(`Note created via service: ${note.id}`)
-      
+      this.logger.info('Note created successfully:', { id: note.id, title: note.title })
       return {
-        details: {
-          id: note.id,
-          title: note.title,
-          content: note.content,
-          createdAt: note.createdAt
-        }
+        details: note
       }
+      
     } catch (error) {
-      this.logger.error('Error creating note via service:', error)
+      this.logger.error('Error creating note:', error)
       throw error
     }
   }
 
   /**
    * Get a note by ID
-   * @param {string} id - Note ID
-   * @returns {Promise<Object|null>} Note details or null if not found
+   * @param {string} id - The note ID
+   * @returns {Promise<Object>} The note
+   * @throws {NoteNotFoundError} When note is not found
    */
   async getNoteById(id) {
     try {
-      if (!id || typeof id !== 'string') {
-        throw new Error('Note ID is required and must be a string')
-      }
+      this.logger.debug('Retrieving note by ID:', { id })
       
+      if (!id) {
+        throw new InvalidNoteDataError('Note ID is required')
+      }
+
       const note = await this.noteRepository.findById(id)
-      if (!note) {
-        this.logger.debug(`Note not found via service: ${id}`)
-        return null
-      }
       
-      this.logger.debug(`Note retrieved via service: ${id}`)
-      
+      this.logger.debug('Note retrieved successfully:', { id: note.id, title: note.title })
       return {
-        details: {
-          id: note.id,
-          title: note.title,
-          content: note.content,
-          createdAt: note.createdAt
-        }
+        details: note
       }
+      
     } catch (error) {
-      this.logger.error(`Error getting note ${id} via service:`, error)
+      this.logger.error('Error retrieving note:', error)
       throw error
     }
   }
 
   /**
    * Get all notes
-   * @returns {Promise<Array>} Array of note details
+   * @returns {Promise<Array>} Array of all notes
    */
   async getAllNotes() {
     try {
-      const notes = await this.noteRepository.findAll()
+      this.logger.debug('Retrieving all notes')
       
-      this.logger.debug(`Retrieved ${notes.length} notes via service`)
+      const notes = await this.noteRepository.getAll()
       
-      return notes.map(note => ({
-        details: {
-          id: note.id,
-          title: note.title,
-          content: note.content,
-          createdAt: note.createdAt
-        }
-      }))
-    } catch (error) {
-      this.logger.error('Error getting all notes via service:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Check if a note exists
-   * @param {string} id - Note ID
-   * @returns {Promise<boolean>} True if note exists, false otherwise
-   */
-  async noteExists(id) {
-    try {
-      if (!id || typeof id !== 'string') {
-        throw new Error('Note ID is required and must be a string')
+      this.logger.info('Notes retrieved successfully:', { count: notes.length })
+      
+      const formattedNotes = []
+      for (const note of notes) {
+        formattedNotes.push({ details: note })
       }
       
-      const exists = await this.noteRepository.exists(id)
-      this.logger.debug(`Note existence check for ${id}: ${exists}`)
+      return formattedNotes
       
-      return exists
     } catch (error) {
-      this.logger.error(`Error checking note existence ${id} via service:`, error)
+      this.logger.error('Error retrieving notes:', error)
       throw error
     }
   }
 
   /**
-   * Get service statistics
-   * @returns {Promise<Object>} Service statistics
+   * Update a note
+   * @param {string} id - The note ID
+   * @param {Object} noteData - The updated note data
+   * @returns {Promise<Object>} The updated note
+   * @throws {NoteNotFoundError} When note is not found
+   * @throws {InvalidNoteDataError} When note data is invalid
    */
-  async getServiceStats() {
+  async updateNote(id, noteData) {
     try {
-      const repoStats = await this.noteRepository.getStats()
+      this.logger.debug('Updating note:', { id, title: noteData.title })
       
-      const stats = {
-        totalNotes: repoStats.totalNotes,
-        oldestNote: repoStats.oldestNote,
-        newestNote: repoStats.newestNote,
-        serviceName: 'NoteService',
-        lastAccessed: new Date()
+      if (!id) {
+        throw new InvalidNoteDataError('Note ID is required')
+      }
+
+      const updatedNote = await this.noteRepository.update(id, noteData)
+      
+      this.logger.info('Note updated successfully:', { id: updatedNote.id, title: updatedNote.title })
+      return {
+        details: updatedNote
       }
       
-      this.logger.debug('Service stats retrieved:', stats)
-      return stats
     } catch (error) {
-      this.logger.error('Error getting service stats:', error)
+      this.logger.error('Error updating note:', error)
       throw error
     }
   }
 
   /**
-   * Get a summary of recent notes (last 5)
-   * @returns {Promise<Array>} Array of recent note summaries
+   * Delete a note
+   * @param {string} id - The note ID
+   * @returns {Promise<void>}
+   * @throws {NoteNotFoundError} When note is not found
    */
-  async getRecentNotes() {
+  async deleteNote(id) {
     try {
-      const allNotes = await this.noteRepository.findAll()
-      const recentNotes = allNotes.slice(0, 5) // Get first 5 (already sorted by date)
+      this.logger.debug('Deleting note:', { id })
       
-      this.logger.debug(`Retrieved ${recentNotes.length} recent notes via service`)
-      
-      return recentNotes.map(note => ({
-        id: note.id,
-        title: note.title,
-        createdAt: note.createdAt,
-        preview: note.content.substring(0, 100) + (note.content.length > 100 ? '...' : '')
-      }))
-    } catch (error) {
-      this.logger.error('Error getting recent notes via service:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Search notes by title (simple text matching)
-   * @param {string} searchTerm - Term to search for in titles
-   * @returns {Promise<Array>} Array of matching note details
-   */
-  async searchNotesByTitle(searchTerm) {
-    try {
-      if (!searchTerm || typeof searchTerm !== 'string') {
-        throw new Error('Search term is required and must be a string')
+      if (!id) {
+        throw new InvalidNoteDataError('Note ID is required')
       }
+
+      await this.noteRepository.delete(id)
       
-      const allNotes = await this.noteRepository.findAll()
-      const searchTermLower = searchTerm.toLowerCase()
+      this.logger.info('Note deleted successfully:', { id })
       
-      const matchingNotes = allNotes.filter(note =>
-        note.title.toLowerCase().includes(searchTermLower)
-      )
-      
-      this.logger.debug(`Found ${matchingNotes.length} notes matching "${searchTerm}"`)
-      
-      return matchingNotes.map(note => ({
-        details: {
-          id: note.id,
-          title: note.title,
-          content: note.content,
-          createdAt: note.createdAt
-        }
-      }))
     } catch (error) {
-      this.logger.error(`Error searching notes for "${searchTerm}" via service:`, error)
+      this.logger.error('Error deleting note:', error)
       throw error
     }
   }
