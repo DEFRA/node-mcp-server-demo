@@ -27,7 +27,7 @@ services:
       MCP_ENABLED: true
       MCP_NOTES_DIR: /home/node/data/notes
     networks:
-      - ai-tech-radar
+      - note-hapi-mcp
 
   mongodb:
     image: mongo:6.0.13
@@ -36,13 +36,13 @@ services:
     volumes:
       - mongodb-data:/data
     networks:
-      - ai-tech-radar
+      - note-hapi-mcp
 
 volumes:
   mongodb-data:
 
 networks:
-  ai-tech-radar:
-    name: ai-tech-radar
+  note-hapi-mcp:
+    name: note-hapi-mcp
     driver: bridge
 

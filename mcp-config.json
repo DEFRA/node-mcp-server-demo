@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "notes-server": {
+      "command": "curl",
+      "args": [
+        "-X", "POST",
+        "http://localhost:3000/mcp",
+        "-H", "Content-Type: application/json",
+        "-d", "@-"
+      ],
+      "transport": {
+        "type": "http",
+        "url": "http://localhost:3000/mcp"
+      }
+    }
+  }
+}

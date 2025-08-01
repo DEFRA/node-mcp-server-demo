@@ -171,5 +171,6 @@ compile_commands.json
 # environmental variables
 .env
 
-# MCP Notes data (but keep example)
-/data/notes/*
+# MCP Notes data (but keep README)
+/data/notes/*.txt
+!/data/notes/README.md
