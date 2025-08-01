@@ -19,9 +19,10 @@ The Model Context Protocol (MCP) enables AI assistants to securely connect to lo
 
 ### Architecture
 - **Backend**: Node.js with Hapi.js framework
-- **MCP Server**: @modelcontextprotocol/sdk
-- **Storage**: File-based repository pattern
-- **Protocol**: JSON-RPC over HTTP
+- **MCP Server**: Direct JSON-RPC implementation (following enterprise patterns)
+- **Storage**: File-based repository pattern with service layer
+- **Protocol**: JSON-RPC over HTTP at `/api/v1/mcp`
+- **Architecture**: Repository Pattern, Service Layer, Domain-Driven Design
 
 ## Understanding JSON-RPC and MCP
 
@@ -307,7 +308,7 @@ Parse error: Invalid literal value, expected "2.0"
 # This request/response cycle proves full compliance:
 
 # Request (standard MCP initialize)
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3000/api/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0"}}}'
 
@@ -341,20 +342,38 @@ curl -X POST http://localhost:3000/mcp \
 
 ### Real-World Examples
 
-#### Our Hapi.js Implementation (Direct JSON-RPC)
+#### Our Hapi.js Implementation (Direct JSON-RPC with Enterprise Patterns)
 ```javascript
-// Clean integration with Hapi's ecosystem
+// Clean integration with Hapi's ecosystem following enterprise patterns
 {
   method: 'POST',
-  path: '/mcp',
-  handler: async (request, h) => {
-    // JSON-RPC handling within Hapi context
-    return handleMcpRequest(request.payload, h)
-  },
+  path: '/api/v1/mcp',
+  handler: handleMcpRequest,
   options: {
-    auth: 'jwt-strategy',           // Use Hapi auth
-    validate: { payload: mcpSchema }, // Use Hapi validation
-    pre: [{ method: rateLimiter }]   // Use Hapi middleware
+    description: 'Handle MCP JSON-RPC requests',
+    notes: 'Processes Model Context Protocol requests via JSON-RPC',
+    tags: ['api', 'mcp'],
+    validate: { payload: mcpRequestSchema }, // Joi validation
+    auth: 'jwt-strategy',                    // Hapi auth integration
+    pre: [{ method: rateLimiter }]           // Hapi middleware
+  }
+}
+
+// Handler follows enterprise patterns
+async function handleMcpRequest(request, h) {
+  try {
+    const mcpService = request.server.app.mcpService // Service injection
+    
+    // Route to service layer method
+    switch (request.payload.method) {
+      case 'initialize':
+        return h.response(await mcpService.initialize(request.payload.params))
+      case 'tools/call':
+        return h.response(await mcpService.callTool(request.payload.params, request.payload.id))
+    }
+  } catch (error) {
+    request.logger.error('MCP request error:', error)
+    throw Boom.internal(`MCP request failed: ${error.message}`)
   }
 }
 ```
@@ -372,128 +391,319 @@ await server.connect(transport)
 
 ### Architecture Overview
 
+The following diagram illustrates the complete architecture of our MCP integration with Hapi.js following enterprise patterns:
+
+```mermaid
+architecture-beta
+    group client_layer(cloud)[Client Layer]
+    group api_layer(server)[API Layer]
+    group service_layer(database)[Service Layer]
+    group data_layer(disk)[Data Layer]
+    group storage_layer(disk)[Storage Layer]
+
+    service mcp_client(internet)[MCP Client] in client_layer
+    
+    service hapi_server(server)[Hapi Server] in api_layer
+    service mcp_endpoints(server)[MCP Endpoints] in api_layer
+    service validation(server)[Joi Validation] in api_layer
+    service error_handler(server)[Error Handler] in api_layer
+    
+    service mcp_service(database)[MCP Service] in service_layer
+    service note_service(database)[Note Service] in service_layer
+    
+    service note_repository(disk)[Note Repository] in data_layer
+    service note_model(disk)[Note Model] in data_layer
+    service note_parser(disk)[Note Parser] in data_layer
+    service file_manager(disk)[File Manager] in data_layer
+    
+    service file_system(disk)[File System] in storage_layer
+
+    mcp_client:B --> T:hapi_server
+    hapi_server:B --> T:mcp_endpoints
+    mcp_endpoints:R --> L:validation
+    mcp_endpoints:B --> T:mcp_service
+    validation:B --> T:error_handler
+    
+    mcp_service:R --> L:note_service
+    note_service:B --> T:note_repository
+    
+    note_repository:R --> L:note_model
+    note_repository:L --> R:note_parser
+    note_repository:B --> T:file_manager
+    
+    file_manager:B --> T:file_system
 ```
-MCP Client → HTTP POST /mcp → Hapi Route Handler → JSON-RPC Parser → Service Layer → Response
-```
+
+**Flow Description:**
+1. **MCP Client** sends JSON-RPC requests over HTTP POST to `/api/v1/mcp`
+2. **Hapi Server** routes requests to MCP endpoints with built-in middleware
+3. **MCP Endpoints** handle HTTP-to-JSON-RPC conversion and route method calls
+4. **Joi Validation** validates request structure and parameters
+5. **MCP Service** implements JSON-RPC protocol and routes tool calls
+6. **Note Service** handles business logic for note operations
+7. **Note Repository** manages data access using Repository Pattern
+8. **File Manager** handles file I/O operations with the file system
+
+**Refactored Architecture Layers:**
+- **Endpoints**: `/api/v1/mcp/endpoints/mcp.js` - HTTP route handlers with Boom error handling
+- **Services**: `/api/v1/mcp/services/mcp.js` - Business logic for MCP operations
+- **Note Services**: `/api/v1/notes/services/note.js` - Note-specific business logic
+- **Repository**: `/src/data/repositories/note.js` - Data access layer with FileManager
+- **Models**: `/src/data/models/note.js` - Domain models with validation
+- **Utilities**: `/src/data/utils/note-parser.js` - File parsing without static methods
+- **Schemas**: `/api/v1/mcp/schemas/mcp.js` - Joi validation schemas
+- **Errors**: `/src/common/errors/domain-errors.js` - Domain-specific error classes
 
 ## Implementation Details
 
 ### 1. Route Structure
 
 ```javascript
-// src/api/v1/mcp/routes/mcp.js
-function createMcpRoutes(mcpServer, noteService) {
-  return [
-    {
-      method: 'POST',
-      path: '/mcp',
-      handler: async (request, h) => {
-        // Direct JSON-RPC handling
-        const payload = request.payload
-        
-        // Handle MCP methods: initialize, tools/list, tools/call
-        switch (payload.method) {
-          case 'initialize':
-            // Return server capabilities
-          case 'tools/list':
-            // Return available tools
-          case 'tools/call':
-            // Execute tool and return result
-        }
-      },
-      options: {
-        payload: { parse: true, allow: 'application/json' }
+// src/api/v1/mcp/endpoints/mcp.js
+import Boom from '@hapi/boom'
+import { McpService } from '../services/mcp.js'
+import { mcpRequestSchema } from '../schemas/mcp.js'
+
+/**
+ * Handler for POST /api/v1/mcp
+ * Handle MCP JSON-RPC requests
+ */
+async function handleMcpRequest(request, h) {
+  try {
+    const mcpService = request.server.app.mcpService
+    const payload = request.payload
+
+    // Route based on JSON-RPC method
+    switch (payload.method) {
+      case 'initialize':
+        return h.response(await mcpService.initialize(payload.params)).code(200)
+      
+      case 'tools/list':
+        return h.response(await mcpService.listTools()).code(200)
+      
+      case 'tools/call':
+        return h.response(await mcpService.callTool(payload.params, payload.id)).code(200)
+      
+      default:
+        return h.response({
+          jsonrpc: '2.0',
+          error: { code: -32601, message: `Method not found: ${payload.method}` },
+          id: payload.id
+        }).code(404)
+    }
+  } catch (error) {
+    request.logger.error('MCP request error:', error)
+    throw Boom.internal(`MCP request failed: ${error.message}`)
+  }
+}
+
+const mcpRoutes = [
+  {
+    method: 'POST',
+    path: '/api/v1/mcp',
+    handler: handleMcpRequest,
+    options: {
+      description: 'Handle MCP JSON-RPC requests',
+      notes: 'Processes Model Context Protocol requests via JSON-RPC',
+      tags: ['api', 'mcp'],
+      validate: {
+        payload: mcpRequestSchema
       }
     }
-  ]
-}
-```
-
-### 2. MCP Method Handlers
-
-#### Initialize
-```javascript
-case 'initialize':
-  response = {
-    jsonrpc: '2.0',
-    result: {
-      protocolVersion: '2024-11-05',
-      capabilities: { tools: {}, prompts: {}, resources: {} },
-      serverInfo: { name: 'notes-server', version: '1.0.0' }
-    },
-    id: payload.id
   }
+]
+
+export { mcpRoutes }
 ```
 
-#### Tools List
+### 2. MCP Service Layer
+
+#### MCP Service Implementation
 ```javascript
-case 'tools/list':
-  response = {
-    jsonrpc: '2.0',
-    result: {
-      tools: [
-        {
-          name: 'create_note',
-          description: 'Create a new note with title and content',
-          inputSchema: { /* JSON Schema */ }
-        }
-        // ... other tools
-      ]
-    },
-    id: payload.id
+// src/api/v1/mcp/services/mcp.js
+import { McpProtocolError } from '../../../../common/errors/domain-errors.js'
+
+class McpService {
+  constructor(noteService) {
+    this.noteService = noteService
+    this.logger = createLogger()
   }
-```
 
-#### Tool Execution
-```javascript
-case 'tools/call': {
-  const toolName = payload.params?.name
-  const toolArguments = payload.params?.arguments || {}
-  
-  switch (toolName) {
-    case 'create_note':
-      const noteResult = await noteService.createNote(toolArguments)
-      result = {
+  async initialize(params) {
+    return {
+      jsonrpc: '2.0',
+      result: {
+        protocolVersion: '2024-11-05',
+        capabilities: { tools: {}, prompts: {}, resources: {} },
+        serverInfo: { name: 'notes-server', version: '1.0.0' }
+      }
+    }
+  }
+
+  async listTools() {
+    return {
+      jsonrpc: '2.0',
+      result: {
+        tools: [
+          {
+            name: 'create_note',
+            description: 'Create a new note with title and content',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                title: { type: 'string', minLength: 1, maxLength: 255 },
+                content: { type: 'string', maxLength: 10000 }
+              },
+              required: ['title', 'content'],
+              additionalProperties: false
+            }
+          },
+          {
+            name: 'get_note',
+            description: 'Retrieve a note by its unique ID',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                noteId: { type: 'string', pattern: '^note_\\d+_[a-z0-9]+$' }
+              },
+              required: ['noteId'],
+              additionalProperties: false
+            }
+          },
+          {
+            name: 'list_notes',
+            description: 'List all available notes with their metadata',
+            inputSchema: { type: 'object', additionalProperties: false }
+          }
+        ]
+      }
+    }
+  }
+
+  async callTool(params, requestId) {
+    const { name: toolName, arguments: toolArguments } = params
+
+    switch (toolName) {
+      case 'create_note':
+        return await this._executeCreateNote(toolArguments, requestId)
+      case 'get_note':
+        return await this._executeGetNote(toolArguments, requestId)
+      case 'list_notes':
+        return await this._executeListNotes(toolArguments, requestId)
+      default:
+        throw new McpProtocolError(`Unknown tool: ${toolName}`)
+    }
+  }
+
+  async _executeCreateNote(args, requestId) {
+    const { title, content } = args
+    const noteResult = await this.noteService.createNote({ title, content })
+
+    return {
+      jsonrpc: '2.0',
+      result: {
         content: [{
           type: 'text',
-          text: `✅ Note created successfully!\n**Title:** ${noteResult.details.title}`
+          text: `✅ **Note created successfully!**
+
+**Title:** ${noteResult.details.title}
+**ID:** ${noteResult.details.id}
+**Created:** ${noteResult.details.createdAt.toISOString()}
+
+The note has been saved and can be retrieved using the get_note tool with ID: ${noteResult.details.id}`
         }]
-      }
-      break
+      },
+      id: requestId
+    }
   }
 }
 ```
 
 ### 3. Service Integration
 
-The implementation integrates seamlessly with existing Hapi services:
+The implementation integrates with the service layer architecture:
 
 ```javascript
 // src/api/plugins/mcp.js
-const mcpRoutes = createMcpRoutes(mcpServer, noteService)
-server.route(mcpRoutes)
+import { FileNoteRepository } from '../../data/repositories/note.js'
+import { NoteService } from '../v1/notes/services/note.js'
+import { McpService } from '../v1/mcp/services/mcp.js'
+import { mcpRoutes } from '../v1/mcp/endpoints/mcp.js'
+
+const mcpPlugin = {
+  name: 'mcp-server',
+  version: '1.0.0',
+  register: async function (server, options) {
+    // Initialize repository and services following patterns
+    const notesDir = config.get('mcp.notesDir', './data/notes')
+    const noteRepository = new FileNoteRepository(notesDir)
+    const noteService = new NoteService(noteRepository)
+    const mcpService = new McpService(noteService)
+
+    // Store services in server app context
+    server.app.mcpService = mcpService
+    server.app.noteService = noteService
+
+    // Register routes
+    server.route(mcpRoutes)
+  }
+}
 ```
 
-### 4. Error Handling
+### 4. Repository and Data Layer
 
-Proper JSON-RPC error responses:
+Following the Repository Pattern with domain error handling:
 
 ```javascript
-// Validation errors
-{
-  jsonrpc: '2.0',
-  error: { code: -32602, message: 'Invalid params' },
-  id: payload.id
-}
+// src/data/repositories/note.js
+import { NoteModel } from '../models/note.js'
+import { NoteParser } from '../utils/note-parser.js'
+import { FileManager } from '../../common/filesystem/file-manager.js'
+import { NoteNotFoundError, FileOperationError } from '../../common/errors/domain-errors.js'
 
-// Tool execution errors
-{
-  jsonrpc: '2.0',
-  result: {
-    content: [{ type: 'text', text: '❌ Error: ...' }],
-    isError: true
-  },
-  id: payload.id
+class FileNoteRepository {
+  constructor(notesDirectory) {
+    this.notesDirectory = notesDirectory
+    this.fileManager = new FileManager(notesDirectory)
+    this.noteParser = new NoteParser()
+    this.logger = createLogger()
+  }
+
+  async create(noteData) {
+    try {
+      const note = new NoteModel(noteData)
+      const fileName = `${note.id}.md`
+      
+      await this.fileManager.writeFile(fileName, note.toFileContent())
+      
+      this.logger.debug('Note created in repository:', { id: note.id, fileName })
+      return note.toJSON()
+      
+    } catch (error) {
+      this.logger.error('Failed to create note in repository:', error)
+      throw new FileOperationError(`Failed to create note: ${error.message}`)
+    }
+  }
+
+  async findById(id) {
+    try {
+      const fileName = `${id}.md`
+      
+      if (!(await this.fileManager.fileExists(fileName))) {
+        throw new NoteNotFoundError(`Note with ID ${id} not found`)
+      }
+
+      const fileContent = await this.fileManager.readFile(fileName)
+      const note = this.noteParser.parseFileContent(fileContent, fileName)
+      
+      return note.toJSON()
+    } catch (error) {
+      if (error instanceof NoteNotFoundError) {
+        throw error
+      }
+      throw new FileOperationError(`Failed to read note: ${error.message}`)
+    }
+  }
 }
 ```
 
@@ -501,41 +711,70 @@ Proper JSON-RPC error responses:
 
 ### 1. For Hapi.js Integration
 
-✅ **DO**: Use direct JSON-RPC handling in Hapi route handlers
+✅ **DO**: Use direct JSON-RPC handling in Hapi route handlers with service layer
 ✅ **DO**: Leverage Hapi's built-in JSON parsing with `payload: { parse: true }`
-✅ **DO**: Use Hapi's validation and middleware capabilities
-✅ **DO**: Integrate with existing service layer architecture
+✅ **DO**: Use Hapi's validation (Joi schemas) and middleware capabilities
+✅ **DO**: Integrate with existing service layer and repository pattern architecture
+✅ **DO**: Use Boom for proper HTTP error handling
+✅ **DO**: Follow domain-driven design with domain-specific error classes
+✅ **DO**: Implement proper logging with structured context
 
 ❌ **DON'T**: Try to use `StreamableHTTPServerTransport` within Hapi
 ❌ **DON'T**: Bypass Hapi's request processing pipeline
 ❌ **DON'T**: Use `h.abandon` unless you're handling responses manually
+❌ **DON'T**: Use static methods in models (prefer utility classes)
+❌ **DON'T**: Nest functions unnecessarily (use simple control structures)
 
 ### 2. JSON-RPC Implementation
 
-✅ **DO**: Validate `jsonrpc`, `method`, and `id` fields
+✅ **DO**: Validate `jsonrpc`, `method`, and `id` fields using Joi schemas
 ✅ **DO**: Return proper error codes (-32600, -32602, -32603, etc.)
 ✅ **DO**: Include request `id` in all responses
-✅ **DO**: Handle method not found scenarios
+✅ **DO**: Handle method not found scenarios with proper routing
+✅ **DO**: Use service layer for business logic separation
+✅ **DO**: Implement comprehensive input validation with domain error classes
 
-### 3. Tool Implementation
+### 3. Service Architecture
 
-✅ **DO**: Provide comprehensive input schemas
+✅ **DO**: Follow Repository Pattern for data access
+✅ **DO**: Implement Service Layer for business logic
+✅ **DO**: Use dependency injection through Hapi server app context
+✅ **DO**: Return formatted response objects with `{ details: data }` structure
+✅ **DO**: Use utility classes instead of static methods
+✅ **DO**: Implement proper error handling at each layer
+
+### 4. Tool Implementation
+
+✅ **DO**: Provide comprehensive input schemas using Joi validation
 ✅ **DO**: Return structured content with `type: 'text'`
 ✅ **DO**: Include error indicators with `isError: true`
-✅ **DO**: Validate tool arguments before execution
+✅ **DO**: Validate tool arguments before execution at service layer
+✅ **DO**: Use domain-specific error classes for different failure types
+✅ **DO**: Log tool execution with structured context
 
-### 4. File Format Considerations
+### 5. File Format and Data Handling
 
-When implementing file-based storage, ensure consistent formatting:
+When implementing file-based storage with the repository pattern:
 
 ```javascript
-// Correct format (no extra indentation)
+// Correct format (no extra indentation) - NoteModel.toFileContent()
 toFileContent() {
-  return `ID: ${this.id}
+  const header = `ID: ${this.id}
 TITLE: ${this.title}
 CREATED: ${this.createdAt.toISOString()}
----
+---`
+
+  return `${header}
 ${this.content}`
+}
+
+// Use NoteParser utility class for parsing (no static methods)
+class NoteParser {
+  parseFileContent(content, filename) {
+    // Parse file content and return new NoteModel instance
+    const noteData = this._extractNoteData(content)
+    return new NoteModel(noteData)
+  }
 }
 ```
 
@@ -545,41 +784,130 @@ ${this.content}`
 
 ```bash
 # Initialize MCP connection
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3000/api/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test-client", "version": "1.0.0"}}}'
 
 # List available tools
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3000/api/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/list"}'
 
 # Create a note
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3000/api/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "create_note", "arguments": {"title": "Test Note", "content": "Hello World!"}}}'
 
-# List notes
-curl -X POST http://localhost:3000/mcp \
+# Get a specific note
+curl -X POST http://localhost:3000/api/v1/mcp \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "list_notes", "arguments": {}}}'
+  -d '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "get_note", "arguments": {"noteId": "note_1754048150071_h5rxn2njn"}}}'
+
+# List all notes
+curl -X POST http://localhost:3000/api/v1/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "list_notes", "arguments": {}}}'
 ```
 
 ### Expected Responses
 
-All responses should follow JSON-RPC 2.0 format:
-- Success: `{"jsonrpc": "2.0", "result": {...}, "id": 1}`
-- Error: `{"jsonrpc": "2.0", "error": {"code": -32603, "message": "..."}, "id": 1}`
+All responses follow JSON-RPC 2.0 format with the refactored structure:
+
+#### Initialize Response
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": { "tools": {}, "prompts": {}, "resources": {} },
+    "serverInfo": { "name": "notes-server", "version": "1.0.0" }
+  },
+  "id": 1
+}
+```
+
+#### Tools List Response
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "tools": [
+      {
+        "name": "create_note",
+        "description": "Create a new note with title and content",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string", "minLength": 1, "maxLength": 255 },
+            "content": { "type": "string", "maxLength": 10000 }
+          },
+          "required": ["title", "content"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "get_note",
+        "description": "Retrieve a note by its unique ID",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "noteId": { "type": "string", "pattern": "^note_\\d+_[a-z0-9]+$" }
+          },
+          "required": ["noteId"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "list_notes",
+        "description": "List all available notes with their metadata",
+        "inputSchema": { "type": "object", "additionalProperties": false }
+      }
+    ]
+  },
+  "id": 2
+}
+```
+
+#### Create Note Success Response
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [{
+      "type": "text",
+      "text": "✅ **Note created successfully!**\n\n**Title:** Test Note\n**ID:** note_1754048150071_h5rxn2njn\n**Created:** 2025-08-01T11:35:50.071Z\n\nThe note has been saved and can be retrieved using the get_note tool with ID: note_1754048150071_h5rxn2njn"
+    }]
+  },
+  "id": 3
+}
+```
+
+#### Error Response
+```json
+{
+  "jsonrpc": "2.0",
+  "error": {
+    "code": -32602,
+    "message": "Invalid params: \"title\" is required"
+  },
+  "id": 3
+}
+```
 
 ## Future Recommendations
 
 ### 1. For New Hapi.js + MCP Projects
 
 1. **Start with direct JSON-RPC implementation** - don't attempt transport abstractions
-2. **Design tools first** - define your MCP tools before implementing routes
+2. **Design tools first** - define your MCP tools before implementing routes  
 3. **Use Hapi plugins** - encapsulate MCP functionality in a reusable plugin
 4. **Implement comprehensive validation** - validate both MCP protocol and tool arguments
 5. **Add proper logging** - log MCP method calls for debugging
+6. **Follow enterprise patterns** - Repository Pattern, Service Layer, Domain-Driven Design
+7. **Use domain-specific errors** - create error classes for different failure scenarios
+8. **Avoid static methods** - use utility classes and dependency injection instead
+9. **Structure endpoints properly** - follow `/api/v{version}/{domain}/` routing conventions
+10. **Implement proper error handling** - use Boom for HTTP errors and domain errors for business logic
 
 ### 2. Alternative Frameworks
 
@@ -594,29 +922,44 @@ If using other Node.js frameworks:
 - **Authentication**: Add authentication middleware before MCP routes
 - **Rate limiting**: Implement rate limiting for MCP endpoints
 - **Monitoring**: Add metrics for MCP tool usage
-- **Validation**: Strict input validation for security
-- **Error handling**: Comprehensive error logging and user-friendly messages
+- **Validation**: Strict input validation using Joi schemas for security
+- **Error handling**: Comprehensive error logging with domain-specific error classes
+- **Service layer**: Proper separation of concerns with repository pattern
+- **Documentation**: JSDoc documentation for all service methods
+- **Testing**: Unit tests for services, integration tests for endpoints
+- **Configuration**: Environment-based configuration for directories and limits
 
 ### 4. Transport Selection Guide
 
-| Use Case | Recommended Transport |
-|----------|----------------------|
-| Standalone MCP server | `StreamableHTTPServerTransport` |
-| Integration with Express | Direct JSON-RPC handling |
-| Integration with Hapi.js | Direct JSON-RPC handling |
-| Integration with Fastify | Direct JSON-RPC handling |
-| Desktop applications | `StdioServerTransport` |
-| WebSocket communication | Custom transport |
+| Use Case | Recommended Transport | Architecture Notes |
+|----------|----------------------|-------------------|
+| Standalone MCP server | `StreamableHTTPServerTransport` | Simple, SDK-managed |
+| Integration with Express | Direct JSON-RPC handling | Use middleware pipeline |
+| Integration with Hapi.js | Direct JSON-RPC with service layer | Repository pattern, domain errors |
+| Integration with Fastify | Direct JSON-RPC handling | Schema validation focus |
+| Desktop applications | `StdioServerTransport` | Local communication |
+| WebSocket communication | Custom transport | Real-time requirements |
 
 ## Conclusion
 
-The key insight is that **MCP is a protocol, not just a transport layer**. For web framework integration, implementing the JSON-RPC protocol directly often provides better results than trying to abstract it away with transport layers designed for different use cases.
+The key insight is that **MCP is a protocol, not just a transport layer**. For web framework integration, implementing the JSON-RPC protocol directly with enterprise patterns often provides better results than trying to abstract it away with transport layers designed for different use cases.
 
-This approach:
-- ✅ Provides full control over request/response handling
-- ✅ Integrates cleanly with existing architecture
-- ✅ Avoids transport layer conflicts
-- ✅ Simplifies debugging and testing
-- ✅ Maintains framework conventions and best practices
+This refactored approach:
+- ✅ Provides full control over request/response handling with proper service architecture
+- ✅ Integrates cleanly with existing Hapi.js architecture following enterprise patterns
+- ✅ Avoids transport layer conflicts while maintaining protocol compliance
+- ✅ Simplifies debugging and testing with clear separation of concerns
+- ✅ Maintains framework conventions and follows domain-driven design principles
+- ✅ Uses repository pattern for data access and service layer for business logic
+- ✅ Implements comprehensive error handling with domain-specific error classes
+- ✅ Avoids static methods and nested functions for better maintainability
+- ✅ Follows established coding standards with proper validation and documentation
 
-The MCP protocol itself is straightforward - the complexity comes from trying to integrate transport abstractions that weren't designed for your specific use case. When in doubt, implement the protocol directly.
+**Key Architectural Benefits:**
+- **Separation of Concerns**: Clear boundaries between endpoints, services, repositories, and models
+- **Domain-Driven Design**: Domain-specific error classes and business logic encapsulation
+- **Testability**: Each layer can be tested independently with proper dependency injection
+- **Maintainability**: Consistent patterns and clear code organization
+- **Scalability**: Service layer can be extended without affecting other components
+
+The MCP protocol itself is straightforward - the complexity comes from trying to integrate transport abstractions that weren't designed for your specific use case. When in doubt, implement the protocol directly using established enterprise patterns for your chosen web framework.

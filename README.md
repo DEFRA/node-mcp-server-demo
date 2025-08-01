@@ -43,7 +43,7 @@ docker compose up --build
 
 The server will be available at:
 - **API Server**: http://localhost:3000
-- **MCP Endpoint**: http://localhost:3000/mcp
+- **MCP Endpoint**: http://localhost:3000/api/v1/mcp
 - **Health Check**: http://localhost:3000/health
 
 ### 2. Test with MCP Inspector (GUI)
@@ -58,7 +58,7 @@ npx @modelcontextprotocol/inspector
 1. Open the Inspector URL in your browser (typically http://localhost:6274/...)
 2. Configure connection:
    - **Transport Type**: HTTP
-   - **URL**: `http://localhost:3000/mcp`
+   - **URL**: `http://localhost:3000/api/v1/mcp`
 3. Test the tools in the Inspector interface
 
 ### 3. Test with curl (Command Line)
@@ -67,7 +67,7 @@ You can also test the MCP server directly using curl commands:
 
 #### Initialize the MCP Server
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3000/api/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -86,7 +86,7 @@ curl -X POST http://localhost:3000/mcp \
 
 #### List Available Tools
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3000/api/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -98,7 +98,7 @@ curl -X POST http://localhost:3000/mcp \
 
 #### Create a Note
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3000/api/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -116,7 +116,7 @@ curl -X POST http://localhost:3000/mcp \
 
 #### List All Notes
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3000/api/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -132,7 +132,7 @@ curl -X POST http://localhost:3000/mcp \
 #### Get a Specific Note
 ```bash
 # Replace "your_note_id" with an actual note ID from list_notes
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3000/api/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -149,6 +149,23 @@ curl -X POST http://localhost:3000/mcp \
 
 ## MCP Integration
 
+### Architecture Overview
+
+This project implements MCP (Model Context Protocol) using enterprise architecture patterns with clear separation of concerns:
+
+```
+MCP Client → HTTP POST /api/v1/mcp → Hapi Endpoints → Services → Repository → File System
+```
+
+**Key Architectural Components:**
+- **Client Layer**: MCP clients (GUI Inspector, curl, AI assistants)
+- **API Layer**: Hapi.js server with JSON-RPC endpoints and validation
+- **Service Layer**: Business logic for MCP operations and note management
+- **Data Layer**: Repository pattern with file-based storage
+- **Storage Layer**: Structured text files in `data/notes/` directory
+
+For a detailed visual representation of the architecture, see the [MCP Integration Guide](./MCP_INTEGRATION_GUIDE.md#architecture-overview).
+
 ### Project Structure
 
 ```
@@ -158,17 +175,26 @@ src/
 │   │   └── mcp.js              # MCP server plugin
 │   ├── server.js               # Hapi server configuration
 │   └── v1/
-│       └── mcp/
-│           └── routes/
-│               └── mcp.js      # MCP JSON-RPC handlers
+│       ├── mcp/
+│       │   ├── endpoints/
+│       │   │   └── mcp.js      # MCP endpoint handlers
+│       │   ├── services/
+│       │   │   └── mcp.js      # MCP business logic
+│       │   └── schemas/
+│       │       └── mcp.js      # MCP validation schemas
+│       └── notes/
+│           └── services/
+│               └── note.js     # Note business logic
+├── common/
+│   └── errors/
+│       └── domain-errors.js    # Domain-specific errors
 ├── data/
 │   ├── models/
 │   │   └── note.js             # Note data model
-│   └── repositories/
-│       └── note.js             # File-based note repository
-└── api/v1/notes/
-    └── services/
-        └── note.js             # Note business logic
+│   ├── repositories/
+│   │   └── note.js             # File-based note repository
+│   └── utils/
+│       └── note-parser.js      # File parsing utilities
 ```
 
 ### File Storage Format
@@ -187,10 +213,23 @@ CREATED: <iso_timestamp>
 
 This implementation demonstrates:
 
-1. **Direct JSON-RPC Handling**: Rather than using MCP transport layers, we implement JSON-RPC directly in Hapi.js route handlers
-2. **Tool Registration**: Three tools are registered with proper schemas and descriptions
-3. **Error Handling**: Comprehensive error handling for invalid requests and tool execution
-4. **File-based Storage**: Simple but effective note storage using structured text files
+1. **Enterprise Architecture Patterns**: Repository Pattern, Service Layer, and Domain-Driven Design
+2. **Direct JSON-RPC Handling**: JSON-RPC implementation integrated with Hapi.js route handlers following enterprise patterns
+3. **Layered Architecture**: Clear separation between endpoints, services, repositories, and data models
+4. **Domain Error Handling**: Custom error classes with proper HTTP status codes using Boom
+5. **Validation**: Comprehensive Joi schemas for request validation
+6. **Tool Registration**: Three MCP tools with proper schemas and business logic separation
+7. **File-based Storage**: Repository pattern implementation with file-based note storage
+
+### Architecture Layers
+
+- **Endpoints** (`/api/v1/mcp/endpoints/`): HTTP route handlers with Boom error handling
+- **Services** (`/api/v1/mcp/services/` & `/api/v1/notes/services/`): Business logic layer
+- **Repository** (`/src/data/repositories/`): Data access layer with Repository Pattern
+- **Models** (`/src/data/models/`): Domain models with validation
+- **Utilities** (`/src/data/utils/`): File parsing and helper utilities
+- **Schemas** (`/api/v1/mcp/schemas/`): Joi validation schemas
+- **Errors** (`/src/common/errors/`): Domain-specific error classes
 
 ## Requirements
 
@@ -383,7 +422,7 @@ docker compose up --build -d
 
 ### MCP Endpoints
 
-- `POST /mcp` - Main MCP JSON-RPC endpoint
+- `POST /api/v1/mcp` - Main MCP JSON-RPC endpoint
 
 ### Health Endpoints
 
@@ -403,7 +442,7 @@ docker compose up --build -d
 
 1. **Port Already in Use**: Change the port in `docker-compose.yml` or stop conflicting services
 2. **Permission Errors**: Ensure Docker has access to the project directory
-3. **MCP Connection Failed**: Verify the server is running and accessible at `http://localhost:3000/mcp`
+3. **MCP Connection Failed**: Verify the server is running and accessible at `http://localhost:3000/api/v1/mcp`
 
 ### Viewing Logs
 
