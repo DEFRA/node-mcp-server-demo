@@ -110,144 +110,111 @@ MCP defines specific methods that servers must implement:
 - Servers can implement the protocol in any way that follows the spec
 - Transport layer is **separate** from protocol compliance
 
-## Why Direct JSON-RPC Implementation?
+## Why We Chose Direct JSON-RPC Implementation
 
-### The Transport Layer Problem
+### The Transport Integration Challenge
 
-The MCP SDK provides transport layers like `StreamableHTTPServerTransport`, which are designed for **standalone MCP servers**. However, when integrating with existing web frameworks like Hapi.js, these transports create conflicts:
+The MCP SDK provides `StreamableHTTPServerTransport` which **can work with web frameworks** like Express and Hapi.js. Looking at the [Express example](https://github.com/modelcontextprotocol/typescript-sdk?tab=readme-ov-file#streamable-http), it shows proper integration using session management.
 
-#### What Transport Layers Do
+#### ✅ Correct StreamableHTTPServerTransport Integration (Express Example)
 ```javascript
-// This is what StreamableHTTPServerTransport expects:
-const transport = new StreamableHTTPServerTransport(server, "http://localhost:3000")
-// It wants to:
-// 1. Handle raw HTTP requests directly
-// 2. Parse HTTP bodies itself  
-// 3. Manage WebSocket connections
-// 4. Handle session management
-// 5. Process MCP protocol
-```
+import express from "express";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
-#### The Framework Conflict
-```javascript
-// But Hapi.js already does this:
-server.route({
-  method: 'POST',
-  path: '/mcp',
-  handler: async (request, h) => {
-    // Hapi has already:
-    // 1. Parsed the HTTP request
-    // 2. Parsed JSON payload  
-    // 3. Applied middleware
-    // 4. Validated input
-    // request.payload is already a JavaScript object!
-  },
-  options: {
-    payload: { parse: true } // Hapi parses JSON automatically
-  }
-})
-```
+const app = express();
+app.use(express.json());
 
-**The Problem**: Two systems trying to do the same job leads to:
-- Payload parsing conflicts (Buffer vs Object)
-- Request processing duplication
-- Session management interference
-- Error handling confusion
+const transports = {};
 
-### Our Solution: Direct JSON-RPC Implementation
+app.post('/mcp', async (req, res) => {
+  const sessionId = req.headers['mcp-session-id'];
+  let transport;
 
-Instead of fighting the framework, we **embrace it** and implement JSON-RPC directly:
+  if (sessionId && transports[sessionId]) {
+    transport = transports[sessionId];
+  } else if (!sessionId && isInitializeRequest(req.body)) {
+    transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+      onsessioninitialized: (sessionId) => {
+        transports[sessionId] = transport;
+      }
+    });
 
-```javascript
-handler: async (request, h) => {
-  const payload = request.payload // Already parsed by Hapi
-  
-  // Validate JSON-RPC structure
-  if (!payload?.jsonrpc || !payload?.method) {
-    return h.response({
-      jsonrpc: '2.0',
-      error: { code: -32600, message: 'Invalid Request' },
-      id: payload?.id || null
-    }).code(400)
+    const server = new McpServer({ name: "example", version: "1.0.0" });
+    await server.connect(transport);
   }
 
-  // Handle MCP methods directly
-  switch (payload.method) {
-    case 'initialize':
-      return h.response({
-        jsonrpc: '2.0',
-        result: {
-          protocolVersion: '2024-11-05',
-          capabilities: { tools: {} },
-          serverInfo: { name: 'notes-server', version: '1.0.0' }
-        },
-        id: payload.id
-      })
-    
-    case 'tools/call':
-      // Execute tool and return MCP-compliant response
-      const result = await executeToolSafely(payload.params)
-      return h.response({
-        jsonrpc: '2.0',
-        result,
-        id: payload.id
-      })
-  }
-}
+  await transport.handleRequest(req, res, req.body);
+});
 ```
 
-### Pros and Cons Analysis
+### Why We Chose Direct Implementation Instead
 
-#### ✅ Advantages of Direct Implementation
+While `StreamableHTTPServerTransport` **can** work with Hapi.js, we chose direct JSON-RPC implementation for several enterprise-focused reasons:
 
-**1. Framework Integration**
-- ✅ Works seamlessly with Hapi.js middleware
-- ✅ Leverages existing authentication, validation, logging
-- ✅ No conflicts with request processing pipeline
-- ✅ Can use Hapi's built-in features (caching, rate limiting, etc.)
+#### ✅ Advantages of Direct Implementation for Enterprise Projects
 
-**2. Control and Flexibility**
-- ✅ Full control over request/response handling
-- ✅ Custom error handling specific to your application
-- ✅ Easy to add custom middleware or processing
-- ✅ Simplified debugging - one less abstraction layer
+**1. Framework Integration & Consistency**
+- ✅ **Follows existing Hapi.js patterns**: Uses standard route handlers, middleware, validation
+- ✅ **Leverages enterprise architecture**: Repository Pattern, Service Layer, Domain-Driven Design
+- ✅ **Consistent error handling**: Uses Boom and domain-specific error classes throughout
+- ✅ **Standard logging**: Integrates with existing structured logging patterns
 
-**3. Performance**
-- ✅ No unnecessary abstraction overhead
-- ✅ Direct access to Hapi's optimized request processing
-- ✅ Reduced memory usage (no duplicate parsing)
-- ✅ Better error reporting and logging
+**2. Enterprise Architecture Alignment**
+- ✅ **Service Layer separation**: Business logic separated from transport concerns
+- ✅ **Dependency injection**: Services injected through Hapi's server app context
+- ✅ **Validation consistency**: Uses Joi schemas like rest of the application
+- ✅ **Testing patterns**: Each layer can be unit tested independently
 
-**4. Maintainability**
-- ✅ Follows existing codebase patterns
-- ✅ Easier to understand for team members familiar with Hapi
-- ✅ No external transport dependencies to maintain
-- ✅ Clear separation of concerns
+**3. Control and Maintainability**
+- ✅ **Full control over request/response**: No hidden transport layer behaviors
+- ✅ **Easier debugging**: Direct code path from HTTP request to business logic
+- ✅ **Team familiarity**: Uses patterns the team already knows
+- ✅ **Custom requirements**: Easy to add enterprise features (auth, rate limiting, metrics)
+
+**4. Production Considerations**
+- ✅ **Security integration**: Works with existing auth strategies and middleware
+- ✅ **Monitoring**: Integrates with existing APM and logging infrastructure
+- ✅ **Performance**: No additional abstraction layer overhead
+- ✅ **Scaling**: Follows established patterns for horizontal scaling
 
 #### ❌ Disadvantages of Direct Implementation
 
 **1. Manual Protocol Implementation**
-- ❌ Must manually implement JSON-RPC validation
-- ❌ Need to handle all MCP method routing yourself
-- ❌ More boilerplate code compared to using SDK transports
+- ❌ Must manually implement JSON-RPC validation (though we used Joi for consistency)
+- ❌ Need to handle MCP method routing manually (though we used service layer patterns)
+- ❌ More initial setup compared to using SDK transports
 - ❌ Must stay updated with MCP protocol changes manually
 
-**2. Limited SDK Benefits**
-- ❌ Can't use SDK's built-in session management
-- ❌ Miss out on automatic protocol validation
-- ❌ No built-in connection lifecycle management
-- ❌ Must implement error codes manually
+**2. Missing SDK Features**
+- ❌ Can't use SDK's built-in session management (though we can implement our own)
+- ❌ No automatic protocol validation (though our implementation is compliant)
+- ❌ No built-in SSE streaming for server-to-client notifications
+- ❌ Must implement error codes manually (though we follow JSON-RPC standards)
 
-**3. Protocol Compliance Risk**
-- ❌ Risk of implementing protocol incorrectly
-- ❌ Need deep understanding of JSON-RPC and MCP specs
-- ❌ Must test compliance thoroughly
-- ❌ Potential for subtle protocol violations
+**3. Alternative: StreamableHTTPServerTransport Integration**
+- ✅ **Could have integrated** `StreamableHTTPServerTransport` with Hapi.js using session management
+- ✅ **Would provide** automatic protocol compliance and SSE streaming
+- ✅ **Would handle** session management and resumability features
+- ❌ **Would require** more complex integration with existing enterprise patterns
+- ❌ **Would add** another abstraction layer to debug and maintain
 
-**4. Code Duplication**
-- ❌ Similar JSON-RPC logic might be needed across projects
-- ❌ Can't easily reuse transport-layer optimizations from SDK
-- ❌ More testing required for protocol compliance
+### When to Use Each Approach
+
+#### Use StreamableHTTPServerTransport When:
+- ✅ **Building new MCP-focused services** without existing framework constraints
+- ✅ **Need SSE streaming** for server-to-client notifications
+- ✅ **Want automatic session management** and resumability
+- ✅ **Prefer SDK-managed protocol compliance**
+- ✅ **Building standalone MCP servers**
+
+#### Use Direct JSON-RPC Implementation When:
+- ✅ **Integrating with existing enterprise applications** (like our Hapi.js project)
+- ✅ **Have established patterns** (Repository, Service Layer, Domain-Driven Design)
+- ✅ **Need tight integration** with existing middleware and auth systems
+- ✅ **Want full control** over request/response handling
+- ✅ **Team familiarity** with the existing framework is high
 
 ## Issues Encountered
 
@@ -327,18 +294,119 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 ### When to Use Each Approach
 
 #### Use Direct JSON-RPC Implementation When:
-- ✅ **Integrating with existing web frameworks** (Express, Hapi, Fastify)
-- ✅ **Need tight control** over request/response processing
-- ✅ **Want to leverage framework middleware** (auth, validation, logging)
-- ✅ **Building production APIs** with custom requirements
-- ✅ **Team is familiar** with the web framework
+- ✅ **Integrating with existing enterprise applications** (like our Hapi.js project)
+- ✅ **Have established architectural patterns** (Repository, Service Layer, Domain-Driven Design)
+- ✅ **Need tight integration** with existing middleware and auth systems
+- ✅ **Want full control** over request/response handling
+- ✅ **Team familiarity** with the existing framework is high
+- ✅ **Stateless architecture** preferred for horizontal scaling
 
-#### Use MCP SDK Transports When:
+#### Use StreamableHTTPServerTransport When:
+- ✅ **Building new MCP-focused services** without existing framework constraints
+- ✅ **Need SSE streaming** for server-to-client notifications
+- ✅ **Want automatic session management** and resumability features
+- ✅ **Prefer SDK-managed protocol compliance** and lifecycle management
 - ✅ **Building standalone MCP servers** from scratch
-- ✅ **Rapid prototyping** of MCP functionality
-- ✅ **Want automatic protocol compliance** validation
-- ✅ **Need built-in session management** features
-- ✅ **Using stdio or WebSocket** transports
+- ✅ **Need stateful sessions** with resumable connections
+
+### Alternative Implementation: Hapi.js + StreamableHTTPServerTransport
+
+For reference, here's how you **could** integrate `StreamableHTTPServerTransport` with Hapi.js:
+
+```javascript
+// src/api/v1/mcp/endpoints/mcp-transport.js
+import { randomUUID } from 'node:crypto'
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
+import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js'
+
+const transports = {}
+
+async function handleMcpTransport(request, h) {
+  const sessionId = request.headers['mcp-session-id']
+  let transport
+
+  if (sessionId && transports[sessionId]) {
+    // Reuse existing transport
+    transport = transports[sessionId]
+  } else if (!sessionId && isInitializeRequest(request.payload)) {
+    // Create new transport with session management
+    transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+      onsessioninitialized: (sessionId) => {
+        transports[sessionId] = transport
+      },
+      enableDnsRebindingProtection: true,
+      allowedHosts: ['127.0.0.1']
+    })
+
+    // Clean up on close
+    transport.onclose = () => {
+      if (transport.sessionId) {
+        delete transports[transport.sessionId]
+      }
+    }
+
+    // Create MCP server and connect
+    const server = new McpServer({
+      name: 'notes-server',
+      version: '1.0.0'
+    })
+
+    // Register tools, resources, prompts
+    // ... (same as our service layer)
+
+    await server.connect(transport)
+  } else {
+    return h.response({
+      jsonrpc: '2.0',
+      error: { code: -32000, message: 'Bad Request: No valid session ID' },
+      id: null
+    }).code(400)
+  }
+
+  // Let transport handle the request
+  await transport.handleRequest(request.raw.req, request.raw.res, request.payload)
+  
+  // Return h.abandon() since transport handles the response
+  return h.abandon
+}
+
+const mcpTransportRoutes = [
+  {
+    method: 'POST',
+    path: '/api/v1/mcp',
+    handler: handleMcpTransport,
+    options: {
+      payload: { parse: true }
+    }
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/mcp',
+    handler: handleMcpTransport
+  },
+  {
+    method: 'DELETE',
+    path: '/api/v1/mcp',
+    handler: handleMcpTransport
+  }
+]
+
+export { mcpTransportRoutes }
+```
+
+**This approach would provide:**
+- ✅ Automatic session management and resumability
+- ✅ SSE streaming for server-to-client notifications  
+- ✅ Built-in protocol compliance validation
+- ✅ SDK-managed connection lifecycle
+
+**But would require:**
+- ❌ Using `h.abandon()` which bypasses Hapi's response handling
+- ❌ Less integration with existing enterprise patterns
+- ❌ More complex debugging across framework and transport layers
+- ❌ Additional complexity in error handling and logging
 
 ### Real-World Examples
 
@@ -378,15 +446,67 @@ async function handleMcpRequest(request, h) {
 }
 ```
 
-#### Equivalent SDK Transport Implementation
+#### Express + StreamableHTTPServerTransport (SDK Example)
 ```javascript
-// Standalone server approach
-const server = new McpServer({ name: 'notes', version: '1.0.0' })
-const transport = new StreamableHTTPServerTransport(httpServer, baseUrl)
+// Direct SDK integration with session management
+import express from "express";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
-server.registerTool('create_note', schema, handler)
-await server.connect(transport)
-// Less integration, more isolation
+const app = express();
+app.use(express.json());
+
+const transports = {};
+
+app.post('/mcp', async (req, res) => {
+  const sessionId = req.headers['mcp-session-id'];
+  let transport;
+
+  if (sessionId && transports[sessionId]) {
+    transport = transports[sessionId];
+  } else if (!sessionId && isInitializeRequest(req.body)) {
+    transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+      onsessioninitialized: (sessionId) => {
+        transports[sessionId] = transport;
+      }
+    });
+
+    const server = new McpServer({ name: 'notes', version: '1.0.0' });
+    server.registerTool('create_note', schema, handler);
+    await server.connect(transport);
+  }
+
+  await transport.handleRequest(req, res, req.body);
+});
+```
+
+#### Hapi.js + StreamableHTTPServerTransport (Alternative Approach)
+```javascript
+// Hybrid approach using SDK transport with Hapi framework
+async function handleMcpTransport(request, h) {
+  const sessionId = request.headers['mcp-session-id'];
+  let transport;
+
+  if (sessionId && transports[sessionId]) {
+    transport = transports[sessionId];
+  } else if (isInitializeRequest(request.payload)) {
+    transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+      onsessioninitialized: (sessionId) => {
+        transports[sessionId] = transport;
+      }
+    });
+
+    const server = new McpServer({ name: 'notes', version: '1.0.0' });
+    // Could integrate with existing services here
+    await server.connect(transport);
+  }
+
+  // Let transport handle the request/response
+  await transport.handleRequest(request.raw.req, request.raw.res, request.payload);
+  return h.abandon; // Bypass Hapi's response handling
+}
 ```
 
 ### Architecture Overview
@@ -931,35 +1051,54 @@ If using other Node.js frameworks:
 
 ### 4. Transport Selection Guide
 
-| Use Case | Recommended Transport | Architecture Notes |
-|----------|----------------------|-------------------|
-| Standalone MCP server | `StreamableHTTPServerTransport` | Simple, SDK-managed |
-| Integration with Express | Direct JSON-RPC handling | Use middleware pipeline |
-| Integration with Hapi.js | Direct JSON-RPC with service layer | Repository pattern, domain errors |
-| Integration with Fastify | Direct JSON-RPC handling | Schema validation focus |
+| Use Case | Recommended Approach | Architecture Notes |
+|----------|---------------------|-------------------|
+| Standalone MCP server | `StreamableHTTPServerTransport` | Simple, SDK-managed, session support |
+| Integration with Express | `StreamableHTTPServerTransport` OR Direct JSON-RPC | Both work well, SDK provides sessions/SSE |
+| Integration with Hapi.js | Direct JSON-RPC OR `StreamableHTTPServerTransport` | Direct = enterprise patterns, SDK = sessions |
+| Enterprise applications | Direct JSON-RPC with service layer | Repository pattern, domain errors, validation |
+| Rapid prototyping | `StreamableHTTPServerTransport` | Quick setup, automatic compliance |
 | Desktop applications | `StdioServerTransport` | Local communication |
 | WebSocket communication | Custom transport | Real-time requirements |
 
 ## Conclusion
 
-The key insight is that **MCP is a protocol, not just a transport layer**. For web framework integration, implementing the JSON-RPC protocol directly with enterprise patterns often provides better results than trying to abstract it away with transport layers designed for different use cases.
+Thank you for the correction! After reviewing the [Express example](https://github.com/modelcontextprotocol/typescript-sdk?tab=readme-ov-file#streamable-http) and [session management documentation](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#session-management), it's clear that **`StreamableHTTPServerTransport` can indeed work with web frameworks** like Hapi.js.
 
-This refactored approach:
-- ✅ Provides full control over request/response handling with proper service architecture
-- ✅ Integrates cleanly with existing Hapi.js architecture following enterprise patterns
-- ✅ Avoids transport layer conflicts while maintaining protocol compliance
-- ✅ Simplifies debugging and testing with clear separation of concerns
-- ✅ Maintains framework conventions and follows domain-driven design principles
-- ✅ Uses repository pattern for data access and service layer for business logic
-- ✅ Implements comprehensive error handling with domain-specific error classes
-- ✅ Avoids static methods and nested functions for better maintainability
-- ✅ Follows established coding standards with proper validation and documentation
+### Key Insights
 
-**Key Architectural Benefits:**
+**✅ Both approaches are valid:**
+1. **`StreamableHTTPServerTransport`**: Provides session management, SSE streaming, automatic protocol compliance
+2. **Direct JSON-RPC**: Provides enterprise integration, framework consistency, full control
+
+**✅ The choice depends on priorities:**
+- **For new MCP-focused services**: SDK transport may be ideal
+- **For enterprise integration**: Direct implementation offers better framework alignment
+- **For session features**: SDK transport provides built-in session management and resumability
+- **For team consistency**: Direct implementation follows established patterns
+
+### Our Choice: Direct JSON-RPC Implementation
+
+We chose direct implementation for **enterprise-specific reasons**:
+- ✅ **Aligns with existing patterns**: Repository Pattern, Service Layer, Domain-Driven Design
+- ✅ **Framework consistency**: Uses Hapi's validation, error handling, middleware
+- ✅ **Team familiarity**: Follows established architectural decisions
+- ✅ **Enterprise features**: Easy integration with auth, logging, monitoring
+- ✅ **Debugging simplicity**: One less abstraction layer to troubleshoot
+
+### Alternative: StreamableHTTPServerTransport
+
+We could have used `StreamableHTTPServerTransport` and gained:
+- ✅ **Session management**: Automatic session handling and resumability
+- ✅ **SSE streaming**: Server-to-client notifications
+- ✅ **Protocol compliance**: SDK-managed validation and lifecycle
+- ✅ **Future-proofing**: Automatic updates with protocol changes
+
+**Key Architectural Benefits of Our Approach:**
 - **Separation of Concerns**: Clear boundaries between endpoints, services, repositories, and models
 - **Domain-Driven Design**: Domain-specific error classes and business logic encapsulation
 - **Testability**: Each layer can be tested independently with proper dependency injection
 - **Maintainability**: Consistent patterns and clear code organization
-- **Scalability**: Service layer can be extended without affecting other components
+- **Enterprise Integration**: Works seamlessly with existing middleware and infrastructure
 
-The MCP protocol itself is straightforward - the complexity comes from trying to integrate transport abstractions that weren't designed for your specific use case. When in doubt, implement the protocol directly using established enterprise patterns for your chosen web framework.
+**The takeaway**: **Both approaches work**. The choice between `StreamableHTTPServerTransport` and direct JSON-RPC implementation should be based on your specific requirements, team expertise, and architectural priorities. MCP is flexible enough to support either approach while maintaining full protocol compliance.

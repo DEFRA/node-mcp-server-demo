@@ -1,5 +1,6 @@
 import { NoteNotFoundError, McpProtocolError } from '../../../../common/errors/domain-errors.js'
 import { createLogger } from '../../../../common/logging/logger.js'
+import { toolDefinitions, createNoteJoiSchema, getNoteJoiSchema, listNotesJoiSchema } from '../schemas/tools.js'
 
 /**
  * MCP Service
@@ -19,7 +20,7 @@ class McpService {
   async initialize(params) {
     this.logger.info('MCP initialize request received')
     
-    return {
+    const initializeResponse = {
       protocolVersion: '2024-11-05',
       capabilities: {
         tools: {},
@@ -31,6 +32,8 @@ class McpService {
         version: '1.0.0'
       }
     }
+    
+    return initializeResponse
   }
 
   /**
@@ -40,57 +43,11 @@ class McpService {
   async listTools() {
     this.logger.debug('MCP tools/list request received')
     
-    return {
-      tools: [
-        {
-          name: 'create_note',
-          description: 'Create a new note with title and content',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              title: {
-                type: 'string',
-                minLength: 1,
-                maxLength: 255,
-                description: 'The title of the note'
-              },
-              content: {
-                type: 'string',
-                maxLength: 10000,
-                description: 'The content/body of the note'
-              }
-            },
-            required: ['title', 'content'],
-            additionalProperties: false
-          }
-        },
-        {
-          name: 'get_note',
-          description: 'Retrieve a note by its unique ID',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              noteId: {
-                type: 'string',
-                pattern: '^note_\\d+_[a-z0-9]+$',
-                description: 'The unique identifier of the note'
-              }
-            },
-            required: ['noteId'],
-            additionalProperties: false
-          }
-        },
-        {
-          name: 'list_notes',
-          description: 'List all available notes with their metadata',
-          inputSchema: {
-            type: 'object',
-            properties: {},
-            additionalProperties: false
-          }
-        }
-      ]
+    const toolsResponse = {
+      tools: toolDefinitions
     }
+    
+    return toolsResponse
   }
 
   /**
@@ -117,22 +74,26 @@ class McpService {
       this.logger.error(`Error executing tool ${toolName}:`, error)
       
       if (error instanceof NoteNotFoundError || error instanceof McpProtocolError) {
-        return {
+        const errorResponse = {
           content: [{
             type: 'text',
             text: `❌ ${error.message}`
           }],
           isError: true
         }
+        
+        return errorResponse
       }
       
-      return {
+      const unexpectedErrorResponse = {
         content: [{
           type: 'text',
           text: `❌ Unexpected error: ${error.message}`
         }],
         isError: true
       }
+      
+      return unexpectedErrorResponse
     }
   }
 
@@ -141,24 +102,34 @@ class McpService {
    * @private
    */
   async _executeCreateNote(args) {
-    const { title, content } = args
+    // Validate arguments using Joi schema
+    const { error, value } = createNoteJoiSchema.validate(args)
+    if (error) {
+      throw new McpProtocolError(`Invalid arguments for create_note: ${error.message}`)
+    }
+    
+    const { title, content } = value
     
     const noteResult = await this.noteService.createNote({ title, content })
     
     this.logger.info(`Note created successfully: ${noteResult.details.id}`)
     
-    return {
-      content: [{
-        type: 'text',
-        text: `✅ **Note created successfully!**
+    const responseText = `✅ **Note created successfully!**
 
 **Title:** ${noteResult.details.title}
 **ID:** ${noteResult.details.id}
 **Created:** ${noteResult.details.createdAt.toISOString()}
 
 The note has been saved and can be retrieved using the get_note tool with ID: ${noteResult.details.id}`
+    
+    const toolResponse = {
+      content: [{
+        type: 'text',
+        text: responseText
       }]
     }
+    
+    return toolResponse
   }
 
   /**
@@ -166,7 +137,13 @@ The note has been saved and can be retrieved using the get_note tool with ID: ${
    * @private
    */
   async _executeGetNote(args) {
-    const { noteId } = args
+    // Validate arguments using Joi schema
+    const { error, value } = getNoteJoiSchema.validate(args)
+    if (error) {
+      throw new McpProtocolError(`Invalid arguments for get_note: ${error.message}`)
+    }
+    
+    const { noteId } = value
     
     const noteResult = await this.noteService.getNoteById(noteId)
     
@@ -176,10 +153,7 @@ The note has been saved and can be retrieved using the get_note tool with ID: ${
     
     this.logger.info(`Note retrieved successfully: ${noteId}`)
     
-    return {
-      content: [{
-        type: 'text',
-        text: `📝 **Note Details**
+    const responseText = `📝 **Note Details**
 
 **Title:** ${noteResult.details.title}
 **ID:** ${noteResult.details.id}
@@ -187,8 +161,15 @@ The note has been saved and can be retrieved using the get_note tool with ID: ${
 
 **Content:**
 ${noteResult.details.content}`
+    
+    const toolResponse = {
+      content: [{
+        type: 'text',
+        text: responseText
       }]
     }
+    
+    return toolResponse
   }
 
   /**
@@ -196,15 +177,25 @@ ${noteResult.details.content}`
    * @private
    */
   async _executeListNotes(args) {
+    // Validate arguments using Joi schema
+    const { error } = listNotesJoiSchema.validate(args)
+    if (error) {
+      throw new McpProtocolError(`Invalid arguments for list_notes: ${error.message}`)
+    }
+    
     const notes = await this.noteService.getAllNotes()
     
     if (notes.length === 0) {
-      return {
+      const emptyResponseText = '📝 No notes found. Create your first note using the create_note tool!'
+      
+      const emptyToolResponse = {
         content: [{
           type: 'text',
-          text: '📝 No notes found. Create your first note using the create_note tool!'
+          text: emptyResponseText
         }]
       }
+      
+      return emptyToolResponse
     }
     
     const notesList = notes.map((note, index) => 
@@ -215,16 +206,20 @@ ${noteResult.details.content}`
     
     this.logger.info(`Listed ${notes.length} notes`)
     
-    return {
-      content: [{
-        type: 'text',
-        text: `📝 **Found ${notes.length} note(s):**
+    const responseText = `📝 **Found ${notes.length} note(s):**
 
 ${notesList}
 
 💡 Use get_note with an ID to view the full content of any note.`
+    
+    const toolResponse = {
+      content: [{
+        type: 'text',
+        text: responseText
       }]
     }
+    
+    return toolResponse
   }
 }
 
