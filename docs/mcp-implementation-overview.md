@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document provides a comprehensive overview of how the Node.js MCP Server Demo has been updated to implement the Model Context Protocol (MCP) using the official MCP SDK and Hapi.js framework. The implementation provides a seamless integration between the MCP protocol and our existing REST API architecture.
+This document provides a comprehensive overview of how the Node.js MCP Server Demo has been updated to implement the Model Context Protocol (MCP) using the official MCP SDK and Hapi.js framework. The implementation provides a seamless integration between the MCP protocol and our business logic layer.
 
 ## What is MCP?
 
@@ -17,7 +17,7 @@ The Model Context Protocol (MCP) is a standard for connecting AI assistants to e
 
 ## Architecture Overview
 
-Our implementation follows a layered architecture that integrates MCP capabilities with our existing Hapi.js REST API:
+Our implementation follows a layered architecture that integrates MCP capabilities with our Hapi.js server:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -62,7 +62,7 @@ This is the core MCP integration point that implements the StreamableHTTPServerT
 - MCP requires specific protocol compliance and message formatting
 - Transport layer needs session state management
 - Streaming capabilities via SSE are MCP-specific requirements
-- Security model differs from REST APIs
+- Security model differs from traditional APIs
 
 ### 2. MCP Tools Service (`/src/api/v1/mcp/services/mcp-tools.js`)
 
@@ -72,15 +72,6 @@ Bridges the gap between MCP protocol and our business logic:
 - **Schema Validation**: Uses Zod schemas for input validation (MCP SDK requirement)
 - **Business Logic Integration**: Connects MCP calls to existing services
 - **Error Handling**: Translates application errors to MCP-compatible responses
-
-### 3. Traditional REST Endpoints (`/src/api/v1/mcp/endpoints/mcp.js`)
-
-Maintains backward compatibility and provides alternative access patterns:
-
-- **HTTP REST API**: Traditional GET/POST endpoints
-- **JSON Validation**: Uses Joi schemas for REST API validation
-- **Documentation**: Swagger/OpenAPI compatible endpoints
-- **Direct Access**: Allows non-MCP clients to use the same functionality
 
 ## Session Management
 
@@ -116,18 +107,6 @@ const transport = new StreamableHTTPServerTransport({
 
 **Purpose**: Prevents malicious websites from making requests to local services
 
-### CORS Configuration
-
-```javascript
-cors: {
-  origin: true,
-  credentials: true,
-  exposedHeaders: ['Mcp-Session-Id']
-}
-```
-
-**Purpose**: Enables browser-based MCP clients while maintaining security
-
 ## Tool Implementation
 
 ### Schema Validation Approach
@@ -139,14 +118,6 @@ cors: {
 const createNoteInputSchema = {
   title: z.string().min(1).max(255),
   content: z.string().min(1)
-}
-
-// Incorrect approach (would cause validation errors)
-const createNoteInputSchema = {
-  type: "object",
-  properties: {
-    title: { type: "string", minLength: 1, maxLength: 255 }
-  }
 }
 ```
 
@@ -171,32 +142,23 @@ mcpServer.registerTool('create_note', {
 
 **Solution**: Convert all tool schemas to direct Zod schema objects
 
-### 2. File Discovery Issue
-
-**Problem**: `list_notes` tool returning "No notes found" despite files existing
-
-**Root Cause**: FileManager hardcoded to filter only `.txt` files while notes stored as `.md`
-
-**Solution**: Made FileManager.listFiles() accept extension parameter
-
-### 3. Session Management
+### 2. Session Management
 
 **Problem**: Stateful protocol requirements in stateless HTTP environment
 
 **Solution**: Implemented in-memory session storage with automatic cleanup
 
-### 4. Transport Integration
+### 3. Transport Integration
 
-**Problem**: Integrating MCP SDK transport with existing Hapi.js server
+**Problem**: Integrating MCP SDK transport with Hapi.js server
 
-**Solution**: Created plugin architecture that registers MCP routes alongside REST routes
+**Solution**: Created plugin architecture that registers MCP routes and MCP tools
 
 ## Benefits of This Architecture
 
-### 1. **Dual Protocol Support**
+### 1. **Protocol Focused Support**
 - MCP clients can use the standardized protocol
-- REST clients can use traditional HTTP endpoints
-- Same business logic serves both interfaces
+- Same business logic serves all MCP tool interfaces
 
 ### 2. **Maintainability**
 - Clear separation of concerns

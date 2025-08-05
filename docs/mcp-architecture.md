@@ -1,28 +1,26 @@
-# MCP vs REST Endpoints: Dual Protocol Architecture
+# MCP Protocol Architecture
 
 ## Overview
 
-This document explains why our implementation maintains both MCP transport endpoints and traditional REST endpoints, and how they work together to provide comprehensive API access.
+This document explains our implementation of the MCP transport endpoint and how it provides comprehensive API access for AI assistants and protocol-compliant clients.
 
 ## Architecture Decision
 
-We implement **dual protocol support** to serve different client types and use cases:
+We implement the **MCP protocol** to serve modern client types and use cases:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   Client Layer                          │
 ├─────────────────────┬───────────────────────────────────┤
-│    MCP Clients      │      REST Clients                 │
-│  (AI Assistants)    │   (Web Apps, Scripts)             │
-└─────────────────────┼───────────────────────────────────┘
+│    MCP Clients      │                                   │
+│  (AI Assistants)    │                                   │
+└─────────────────────┴───────────────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────────────┐
 │                 Hapi.js Server                          │
-├─────────────────────┬───────────────────────────────────┤
-│  MCP Transport      │    REST Endpoints                 │
-│    /api/v1/mcp      │    /api/v1/mcp/*                  │
-│  (Protocol Layer)   │  (HTTP JSON API)                  │
-└─────────────────────┼───────────────────────────────────┘
+├─────────────────────────────────────────────────────────┤
+│  MCP Transport      /api/v1/mcp (Protocol Layer)         │
+└─────────────────────┴───────────────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────────────┐
 │              Shared Business Logic                      │
@@ -67,51 +65,17 @@ DELETE /api/v1/mcp/{sessionId} # Session cleanup
 - ✅ DNS rebinding protection
 - ✅ CORS for browser clients
 
-## Traditional REST Endpoints
+## Key Differences (MCP vs REST)
 
-### Purpose
-- **HTTP Compliance**: Standard REST API patterns
-- **Web Integration**: Easy integration with web applications
-- **Documentation**: OpenAPI/Swagger compatible
-- **Backwards Compatibility**: Maintains existing API contracts
-
-### Endpoint Structure
-```
-GET    /api/v1/mcp/notes       # List all notes
-POST   /api/v1/mcp/notes       # Create new note
-GET    /api/v1/mcp/notes/{id}  # Get specific note
-PUT    /api/v1/mcp/notes/{id}  # Update note
-DELETE /api/v1/mcp/notes/{id}  # Delete note
-```
-
-### Request Format (REST)
-```json
-POST /api/v1/mcp/notes
-{
-  "title": "My Note",
-  "content": "Note content"
-}
-```
-
-### Features
-- ✅ RESTful resource naming
-- ✅ HTTP status codes
-- ✅ Joi schema validation
-- ✅ Standard HTTP methods
-- ✅ JSON request/response
-- ✅ Stateless operation
-
-## Key Differences
-
-| Aspect | MCP Transport | REST Endpoints |
-|--------|---------------|----------------|
-| **Protocol** | MCP Specification | HTTP REST |
-| **Session** | Stateful | Stateless |
-| **Validation** | Zod Schemas | Joi Schemas |
-| **Streaming** | Server-Sent Events | Request/Response |
-| **Client Type** | AI Assistants | Web Applications |
-| **Error Format** | MCP Error Objects | HTTP Status + JSON |
-| **Documentation** | MCP Schema | OpenAPI/Swagger |
+| Aspect | MCP Transport |
+|--------|---------------|
+| **Protocol** | MCP Specification |
+| **Session** | Stateful |
+| **Validation** | Zod Schemas |
+| **Streaming** | Server-Sent Events |
+| **Client Type** | AI Assistants |
+| **Error Format** | MCP Error Objects |
+| **Documentation** | MCP Schema |
 
 ## Code Implementation
 
@@ -125,10 +89,8 @@ export const mcpTransportRoutes = [
     handler: async (request, h) => {
       const sessionId = request.headers['mcp-session-id'] || 
                        `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      
       // Handle MCP protocol messages
       const { method, params } = request.payload
-      
       switch (method) {
         case 'initialize':
           return handleInitialize(sessionId, params, h)
@@ -144,37 +106,9 @@ export const mcpTransportRoutes = [
 ]
 ```
 
-### REST API Handler
-```javascript
-// /src/api/v1/mcp/endpoints/mcp.js
-export const mcpRoutes = [
-  {
-    method: 'POST',
-    path: '/api/v1/mcp/notes',
-    handler: createNote,
-    options: {
-      description: 'Create a new note',
-      tags: ['api', 'notes'],
-      validate: {
-        payload: createNoteSchema
-      }
-    }
-  },
-  {
-    method: 'GET',
-    path: '/api/v1/mcp/notes',
-    handler: listNotes,
-    options: {
-      description: 'List all notes',
-      tags: ['api', 'notes']
-    }
-  }
-]
-```
-
 ## Shared Business Logic
 
-Both endpoint types use the same underlying services:
+All MCP operations use the same underlying services:
 
 ```javascript
 // Shared service layer
@@ -197,32 +131,21 @@ class NoteService {
 }
 ```
 
-## When to Use Which?
-
-### Use MCP Transport When:
+## When to Use MCP Transport
 - Building AI assistant integrations
 - Need real-time streaming capabilities
 - Require session-based communication
 - Working with MCP-compatible tools
 - Building stateful applications
 
-### Use REST Endpoints When:
-- Building web applications
-- Need simple HTTP integration
-- Want stateless communication
-- Require OpenAPI documentation
-- Building mobile applications
-
-## Benefits of Dual Protocol
+## Benefits of MCP Protocol
 
 ### 1. **Client Flexibility**
 - AI assistants can use MCP protocol
-- Web apps can use REST APIs
-- Different teams can choose appropriate protocol
+- Modern clients can leverage streaming and session features
 
 ### 2. **Future-Proofing**
 - MCP adoption can happen gradually
-- Existing REST clients continue working
 - New capabilities available via MCP
 
 ### 3. **Development Efficiency**
@@ -231,15 +154,14 @@ class NoteService {
 - Shared validation and error handling
 
 ### 4. **Testing & Debugging**
-- REST endpoints easier to test manually
 - MCP endpoints provide full protocol features
-- Both protocols validate same business logic
+- All protocol logic validated through a single interface
 
 ## Migration Strategy
 
 For organizations wanting to adopt MCP:
 
-1. **Phase 1**: Keep existing REST endpoints
+1. **Phase 1**: Keep existing REST endpoints (if present)
 2. **Phase 2**: Add MCP transport alongside REST
 3. **Phase 3**: Migrate AI tools to MCP protocol
 4. **Phase 4**: Consider deprecating REST if no longer needed

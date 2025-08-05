@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides comprehensive testing instructions for both the MCP transport endpoints and traditional REST endpoints using cURL commands. These tests can be run once Docker is up and running.
+This guide provides comprehensive testing instructions for the MCP transport endpoint using cURL commands. These tests can be run once Docker is up and running.
 
 ## Prerequisites
 

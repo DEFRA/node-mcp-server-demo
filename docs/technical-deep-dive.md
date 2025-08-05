@@ -43,13 +43,13 @@ switch (method) {
 - Allows for enhanced logging and metrics
 - Provides flexibility for custom error handling
 
-### 2. Dual Schema Validation Architecture
+### 2. Zod Schema Validation Architecture
 
-**Challenge**: MCP SDK requires Zod schemas, while our REST API uses Joi schemas
+**Challenge**: MCP SDK requires Zod schemas for tool validation
 
 **Component**: Tool registration in `/src/api/v1/mcp/services/mcp-tools.js`
 
-**Technical Problem**: The MCP SDK validates tool inputs using Zod, but our existing validation layer uses Joi. Attempting to use JSON Schema format resulted in runtime errors.
+**Technical Problem**: The MCP SDK validates tool inputs using Zod. Attempting to use JSON Schema format resulted in runtime errors.
 
 **Root Cause Analysis**:
 ```javascript
@@ -83,36 +83,6 @@ mcpServer.registerTool('create_note', {
 }, async (args) => {
   // Tool implementation
 })
-```
-
-**Dual Validation Architecture**:
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Request                             │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-           ┌──────────▼──────────┐
-           │    Route Decision   │
-           └──────────┬──────────┘
-                      │
-        ┌─────────────▼─────────────┐
-        │       Protocol?           │
-        └─────────────┬─────────────┘
-                      │
-    ┌─────────────────▼─────────────────┐
-    │                                   │
-┌───▼────┐                         ┌────▼────┐
-│  MCP   │                         │  REST   │
-│ Zod    │                         │  Joi    │
-│Schema  │                         │ Schema  │
-└───┬────┘                         └────┬────┘
-    │                                   │
-    └─────────────────▼─────────────────┘
-                      │
-            ┌─────────▼─────────┐
-            │  Business Logic   │
-            │  (Same Service)   │
-            └───────────────────┘
 ```
 
 ### 3. Session Management Implementation
@@ -216,48 +186,18 @@ cors: {
 
 **Symptom**: `keyValidator._parse is not a function`
 
-**Investigation Process**:
-1. Checked MCP SDK documentation
-2. Examined tool registration examples
-3. Traced error through SDK source code
-4. Discovered schema format expectation mismatch
-
 **Technical Root Cause**: 
 The MCP SDK's `registerTool` method expects Zod schema objects, not JSON Schema. The SDK internally calls `zodSchema._parse()` which doesn't exist on JSON Schema objects.
 
 **Resolution Strategy**:
 1. Convert all tool schemas from JSON Schema to Zod
-2. Maintain separate Joi schemas for REST endpoints
-3. Verify SDK automatically converts Zod to JSON Schema for protocol responses
+2. Verify SDK automatically converts Zod to JSON Schema for protocol responses
 
-### Issue 2: File Discovery Failure
 
-**Symptom**: `list_notes` tool returning "No notes found" despite files existing
 
-**Investigation Process**:
-1. Verified files exist in data/notes directory
-2. Checked file extensions (.md vs .txt)
-3. Traced through FileManager.listFiles() method
-4. Discovered hardcoded extension filter
-
-**Technical Root Cause**:
-FileManager was filtering files by `.txt` extension, but note files are stored with `.md` extension.
-
-**Resolution Strategy**:
-1. Make extension parameter configurable
-2. Update service layer to specify correct extension
-3. Add debug logging for file discovery
-4. Test with existing note files
-
-### Issue 3: Session State Management
+### Issue 2: Session State Management
 
 **Symptom**: Sessions not persisting across requests
-
-**Investigation Process**:
-1. Verified session ID generation
-2. Checked session storage mechanism
-3. Examined session ID header handling
-4. Tested session lifecycle
 
 **Technical Root Cause**:
 Session IDs were being generated but not properly extracted from request headers in subsequent calls.
@@ -287,20 +227,15 @@ Session IDs were being generated but not properly extracted from request headers
 
 **Schema Validation**: 
 - Zod validation: ~0.1ms per operation
-- Joi validation: ~0.05ms per operation
-- Dual validation overhead: ~0.15ms per request
-
-**File System Operations**:
-- File listing: ~1-5ms depending on directory size
-- File reading: ~0.5-2ms per file
+- File System Operations: ~1-5ms depending on directory size
 - Markdown parsing: ~0.1ms per note
 
 ## Architecture Benefits
 
-### 1. **Protocol Flexibility**
-- Clients can choose MCP or REST based on needs
-- Same business logic serves both protocols
-- Easy to add new protocols in the future
+### 1. **Protocol Focused Flexibility**
+- Clients can use MCP protocol for AI assistant integration
+- Same business logic serves all MCP tool interfaces
+- Easy to add new protocol features in the future
 
 ### 2. **Maintainability**
 - Clear separation between protocol and business logic
@@ -308,8 +243,7 @@ Session IDs were being generated but not properly extracted from request headers
 - Consistent error handling patterns
 
 ### 3. **Testability**
-- REST endpoints easy to test with standard tools
-- MCP protocol testable via cURL
+- MCP protocol testable via cURL and protocol clients
 - Business logic independently testable
 
 ### 4. **Scalability**

@@ -199,16 +199,6 @@ server {
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;
     }
-    
-    # REST endpoints can be load balanced normally
-    location /api/v1/mcp/ {
-        proxy_pass http://mcp_backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
 }
 ```
 
@@ -397,28 +387,6 @@ const mongoOptions = {
   socketTimeoutMS: 45000,
   bufferMaxEntries: 0,
   bufferCommands: false
-}
-```
-
-### 2. Caching Strategy
-
-```javascript
-// Response caching for GET endpoints
-export const cachePlugin = {
-  name: 'cache',
-  register: async (server) => {
-    server.route({
-      method: 'GET',
-      path: '/api/v1/mcp/notes',
-      handler: listNotes,
-      options: {
-        cache: {
-          expiresIn: 60 * 1000, // 1 minute
-          privacy: 'private'
-        }
-      }
-    })
-  }
 }
 ```
 

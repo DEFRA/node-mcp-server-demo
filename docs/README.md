@@ -13,20 +13,20 @@ This directory contains comprehensive documentation for the MCP-enabled Node.js 
 - What is MCP and why it's used
 - Overall architecture and component relationships  
 - Key benefits and design decisions
-- Introduction to the dual protocol approach
+- MCP-only protocol approach
 
 **Audience**: Technical leads, architects, new team members
 
 ---
 
-### 🏗️ [MCP vs REST Architecture](./mcp-vs-rest-architecture.md)
-**Architectural Deep Dive** - Understanding the dual protocol design.
+### 🏗️ [MCP Architecture](./mcp-architecture.md)
+**Architectural Deep Dive** - Understanding the MCP protocol design.
 
 **Contents**:
-- Why both MCP and REST endpoints exist
-- Detailed comparison of protocol differences
+- Why MCP protocol is used
+- Detailed protocol overview
 - Shared business logic architecture
-- When to use which protocol
+- Protocol-specific validation and session management
 
 **Audience**: Developers, solution architects
 
@@ -64,7 +64,6 @@ This directory contains comprehensive documentation for the MCP-enabled Node.js 
 **Contents**:
 - Complete cURL-based test suite
 - MCP protocol testing procedures
-- REST API validation tests
 - Performance and load testing scripts
 
 **Audience**: QA engineers, developers, support teams
@@ -76,7 +75,7 @@ This directory contains comprehensive documentation for the MCP-enabled Node.js 
 1. **For New Developers**: Start with [MCP Implementation Overview](./mcp-implementation-overview.md)
 2. **For Testing**: Jump to [Testing Guide](./testing-guide.md)
 3. **For Production**: Review [Production Deployment](./production-deployment.md)
-4. **For Architecture Understanding**: Read [MCP vs REST Architecture](./mcp-vs-rest-architecture.md)
+4. **For Architecture Understanding**: Read [MCP Architecture](./mcp-architecture.md)
 5. **For Implementation Details**: See [Technical Deep Dive](./technical-deep-dive.md)
 
 ## Key Concepts Reference
@@ -87,11 +86,10 @@ This directory contains comprehensive documentation for the MCP-enabled Node.js 
 - Zod schema validation for tool inputs
 - Server-Sent Events for real-time updates
 
-### Dual Protocol Support
+### MCP-Only Protocol Support
 - **MCP Endpoints**: `/api/v1/mcp` (transport layer)
-- **REST Endpoints**: `/api/v1/mcp/*` (traditional HTTP)
 - Shared business logic and data layer
-- Protocol-specific validation (Zod vs Joi)
+- Protocol-specific validation (Zod)
 
 ### Core Components
 - **StreamableHTTPServerTransport**: MCP SDK integration
@@ -113,22 +111,12 @@ This directory contains comprehensive documentation for the MCP-enabled Node.js 
      -d '{"method": "initialize", "params": {...}}'
    ```
 
-3. **Test REST API**:
-   ```bash
-   curl -X GET http://localhost:3000/api/v1/mcp/notes
-   ```
-
 ## API Endpoints Summary
 
 ### MCP Transport
 - `POST /api/v1/mcp` - Main MCP protocol endpoint
 - `GET /api/v1/mcp/{sessionId}` - SSE streaming
 - `DELETE /api/v1/mcp/{sessionId}` - Session cleanup
-
-### REST API
-- `GET /api/v1/mcp/notes` - List all notes
-- `POST /api/v1/mcp/notes` - Create new note
-- `GET /api/v1/mcp/notes/{id}` - Get specific note
 
 ### Health & Monitoring
 - `GET /health` - Health check endpoint
@@ -170,5 +158,5 @@ When adding new documentation:
 
 ---
 
-*Last updated: January 2025*
-*Documentation version: 1.0*
+*Last updated: August 2025*
+*Documentation version: 1.1*
