@@ -82,17 +82,20 @@ class FileManager {
   }
 
   /**
-   * List all .txt files in the directory
-   * @returns {Promise<string[]>} Array of .txt filenames
+   * List files in the directory with optional extension filter
+   * @param {string} [relativePath='.'] - Relative path within the base directory
+   * @param {string} [extension] - File extension to filter by (e.g., '.md', '.txt')
+   * @returns {Promise<string[]>} Array of filenames
    */
-  async listFiles() {
+  async listFiles(relativePath = '.', extension = '.txt') {
     try {
       await this.ensureDirectory()
-      const files = await fs.readdir(this.baseDir)
-      const txtFiles = files.filter(file => file.endsWith('.txt'))
+      const targetDir = relativePath === '.' ? this.baseDir : path.join(this.baseDir, relativePath)
+      const files = await fs.readdir(targetDir)
+      const filteredFiles = files.filter(file => file.endsWith(extension))
       
-      this.logger.debug(`Listed ${txtFiles.length} .txt files`)
-      return txtFiles
+      this.logger.debug(`Listed ${filteredFiles.length} ${extension} files from ${relativePath}`)
+      return filteredFiles
     } catch (error) {
       this.logger.error('Error listing files:', error)
       throw error

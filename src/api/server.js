@@ -6,7 +6,7 @@ import { config } from '../config/index.js'
 import { pulse } from './plugins/pulse.js'
 import { requestLogger } from './plugins/request-logger.js'
 import { requestTracing } from './plugins/request-tracing.js'
-import { mcpPlugin } from './plugins/mcp.js'
+import { mcpTransportPlugin } from './plugins/mcp-transport.js'
 
 import { probes as probesRouter } from './probes/probes.js'
 
@@ -43,7 +43,7 @@ async function createServer () {
     requestTracing,
     pulse,
     probesRouter,
-    mcpPlugin
+    mcpTransportPlugin
   ])
 
   return server
