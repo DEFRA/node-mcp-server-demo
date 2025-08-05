@@ -46,6 +46,8 @@ The server will be available at:
 - **MCP Endpoint**: http://localhost:3000/api/v1/mcp
 - **Health Check**: http://localhost:3000/health
 
+> **🔒 Security Note**: The development configuration allows MCP inspector connections without strict origin validation to support testing tools. For production deployment, ensure `NODE_ENV=production` is set to enable proper DNS rebinding protection. See [Production Deployment](./docs/production-deployment.md) for security requirements.
+
 ### 2. Test with MCP Inspector (GUI)
 
 The easiest way to interact with the MCP server:
@@ -432,9 +434,10 @@ docker compose up --build -d
 
 ### Environment Variables
 
-- `NODE_ENV`: Environment (development/production)
+- `NODE_ENV`: Environment (development/production) **⚠️ CRITICAL: Set to 'production' for security**
 - `PORT`: Server port (default: 3000)
 - `LOG_LEVEL`: Logging level (default: info)
+- `MCP_ENABLED`: Enable MCP functionality (default: false)
 
 ## Troubleshooting
 

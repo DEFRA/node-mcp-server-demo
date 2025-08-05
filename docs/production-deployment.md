@@ -8,29 +8,77 @@ This document outlines the key considerations and required changes when deployin
 
 ### 1. DNS Rebinding Protection Updates
 
-**Current Configuration (Local Development)**:
-```javascript
-const transport = new StreamableHTTPServerTransport({
-  enableDnsRebindingProtection: true,
-  allowedHosts: ['localhost', '127.0.0.1', 'node-mcp-server-demo-development']
-})
-```
+**⚠️ CRITICAL SECURITY CONFIGURATION**
 
-**Production Configuration**:
+The MCP transport layer has environment-specific DNS rebinding protection that **MUST** be properly configured for production deployment.
+
+**Current Configuration (Development Environment)**:
 ```javascript
+// Check if we're in production environment
+const isProduction = process.env.NODE_ENV === 'production'
+
 const transport = new StreamableHTTPServerTransport({
-  enableDnsRebindingProtection: true,
+  // Only enable DNS rebinding protection in production
+  // This allows MCP inspector and other development tools to work properly
+  enableDnsRebindingProtection: isProduction,
   allowedHosts: [
-    'your-domain.com',
-    'api.your-domain.com',
-    'mcp.your-domain.com',
-    process.env.SERVER_HOSTNAME,
-    // Add load balancer IPs if applicable
-    '10.0.0.0/8',  // Internal network range
-    '172.16.0.0/12' // Docker network range
+    '127.0.0.1',                           // Local development
+    'localhost',                           // Local development
+    'localhost:3000',                      // Local development with port
+    '0.0.0.0',                            // Docker container binding
+    '0.0.0.0:3000',                       // Docker container with port
+    'node-mcp-server-demo-development',    // Docker container name
+    'node-mcp-server-demo-development:3000' // Docker container name with port
+    // Add your production domains here, e.g.:
+    // 'your-domain.com',
+    // 'api.your-domain.com'
+  ],
+  allowedOrigins: [
+    'http://localhost:3000',               // Local development
+    'http://127.0.0.1:3000',              // Local development
+    'http://0.0.0.0:3000',                // Docker container
+    'http://localhost:6274',              // mcp inspector
+    'http://localhost:6277',              // mcp inspector
+    'http://node-mcp-server-demo-development:3000', // Docker inter-container
+    // Allow undefined/null origins for development tools like MCP inspector
+    ...(isProduction ? [] : [null, undefined, ''])
+    // Add your production origins here, e.g.:
+    // 'https://your-domain.com',
+    // 'https://www.your-domain.com'
   ]
 })
 ```
+
+**Production Configuration Requirements**:
+
+1. **Set NODE_ENV=production** - This enables DNS rebinding protection
+2. **Update allowedHosts** for your production domains:
+```javascript
+allowedHosts: [
+  'your-domain.com',
+  'api.your-domain.com',
+  'mcp.your-domain.com',
+  process.env.SERVER_HOSTNAME,
+  // Add load balancer IPs if applicable
+  '10.0.0.0/8',  // Internal network range
+  '172.16.0.0/12' // Docker network range
+]
+```
+
+3. **Update allowedOrigins** for your production origins:
+```javascript
+allowedOrigins: [
+  'https://your-domain.com',
+  'https://www.your-domain.com',
+  'https://app.your-domain.com',
+  // Remove development origins (localhost, null, undefined)
+]
+```
+
+**⚠️ Security Warning**: 
+- The development configuration allows `null` and `undefined` origins to support MCP inspector
+- This **MUST NOT** be present in production as it creates a security vulnerability
+- The `isProduction` check ensures this is automatically handled based on NODE_ENV
 
 ### 2. CORS Configuration
 
@@ -98,15 +146,19 @@ class SessionManager {
 ### Required Environment Variables
 
 ```bash
-# Server Configuration
+# ⚠️  CRITICAL: This MUST be set to 'production' for security
+# Setting NODE_ENV=production enables DNS rebinding protection in MCP transport
 NODE_ENV=production
+
+# Server Configuration
 PORT=3000
 HOST=0.0.0.0
 SERVER_HOSTNAME=api.your-domain.com
 
-# Security
+# MCP Security Configuration (REQUIRED for production)
+# These replace the development localhost/null origin allowances
 ALLOWED_ORIGINS=https://your-frontend.com,https://admin.your-domain.com
-ALLOWED_HOSTS=api.your-domain.com,your-domain.com
+ALLOWED_HOSTS=api.your-domain.com,your-domain.com,mcp.your-domain.com
 
 # Session Storage
 REDIS_HOST=redis.your-domain.com
@@ -421,5 +473,41 @@ const mongoOptions = {
 - [ ] SSL certificate expiration (30 days)
 - [ ] High error rates (>5%)
 - [ ] Response time degradation (>2s p95)
+
+## 🔒 Critical Security Checklist
+
+### Before Production Deployment
+
+**⚠️ MANDATORY SECURITY CONFIGURATION**
+
+- [ ] **✅ NODE_ENV=production** - Enables DNS rebinding protection
+- [ ] **✅ Remove development origins** - No localhost/null origins in allowedOrigins
+- [ ] **✅ Configure production domains** - Add your actual domains to allowedHosts
+- [ ] **✅ HTTPS enforcement** - Ensure all MCP connections use HTTPS
+- [ ] **✅ Validate CORS settings** - Only allow trusted frontend origins
+- [ ] **✅ Session storage security** - Use Redis with proper authentication
+- [ ] **✅ Remove debug endpoints** - Disable development-only routes
+- [ ] **✅ Log sanitization** - Ensure no sensitive data in logs
+- [ ] **✅ Rate limiting** - Implement proper rate limiting on MCP endpoints
+- [ ] **✅ Monitor origins** - Set up alerts for rejected connection attempts
+
+### Verify Security Configuration
+
+```bash
+# Test that development origins are blocked
+curl -X POST https://your-domain.com/api/v1/mcp \
+  -H "Origin: http://localhost:3000" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"initialize","id":1}'
+# Should return 403 Forbidden in production
+
+# Test that null origins are blocked  
+curl -X POST https://your-domain.com/api/v1/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"initialize","id":1}'
+# Should return 403 Forbidden in production
+```
+
+**🚨 SECURITY WARNING**: Failure to properly configure NODE_ENV=production will leave your MCP server vulnerable to DNS rebinding attacks and unauthorized access from development tools.
 
 This production configuration ensures the MCP server can handle enterprise workloads while maintaining security, performance, and reliability standards.

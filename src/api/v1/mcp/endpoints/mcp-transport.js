@@ -73,6 +73,9 @@ async function handleMcpTransport(request, h) {
       // New initialization request - create new session
       logger.info('Creating new MCP session for initialize request')
 
+      // Check if we're in production environment
+      const isProduction = process.env.NODE_ENV === 'production'
+
       let initializedSessionId = null
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
@@ -83,8 +86,9 @@ async function handleMcpTransport(request, h) {
           const sessionIdObj = { sessionId: newSessionId }
           logger.info(`MCP session initialized  ${JSON.stringify(sessionIdObj)}`)
         },
-        // Enable DNS rebinding protection for security (recommended for production)
-        enableDnsRebindingProtection: true,
+        // Only enable DNS rebinding protection in production
+        // This allows MCP inspector and other development tools to work properly
+        enableDnsRebindingProtection: isProduction,
         allowedHosts: [
           '127.0.0.1',                           // Local development
           'localhost',                           // Local development
@@ -101,7 +105,11 @@ async function handleMcpTransport(request, h) {
           'http://localhost:3000',               // Local development
           'http://127.0.0.1:3000',              // Local development
           'http://0.0.0.0:3000',                // Docker container
-          'http://node-mcp-server-demo-development:3000' // Docker inter-container
+          'http://localhost:6274',              // mcp inspector
+          'http://localhost:6277',              // mcp inspector
+          'http://node-mcp-server-demo-development:3000', // Docker inter-container
+          // Allow undefined/null origins for development tools like MCP inspector
+          ...(isProduction ? [] : [null, undefined, ''])
           // Add your production origins here, e.g.:
           // 'https://your-domain.com',
           // 'https://www.your-domain.com'

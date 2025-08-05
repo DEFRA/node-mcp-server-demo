@@ -171,9 +171,55 @@ mcpServer.registerTool('create_note', {
 - Business logic scales independently
 
 ### 4. **Security**
-- DNS rebinding protection prevents local network attacks
+- Environment-specific DNS rebinding protection
+- Development mode allows MCP inspector connections (null origins)
+- Production mode enforces strict origin validation
 - CORS properly configured for browser clients
 - Session isolation prevents cross-session data leaks
+
+## Security Implementation Details
+
+### DNS Rebinding Protection
+
+The MCP transport implements environment-specific DNS rebinding protection to balance security with development usability:
+
+**Development Configuration** (`NODE_ENV !== 'production'`):
+```javascript
+// Allows MCP inspector and development tools
+enableDnsRebindingProtection: false,  // Disabled for development
+allowedOrigins: [
+  'http://localhost:3000',
+  'http://localhost:6274',  // MCP inspector
+  'http://localhost:6277',  // MCP inspector  
+  null, undefined, ''       // Allow tools without Origin header
+]
+```
+
+**Production Configuration** (`NODE_ENV === 'production'`):
+```javascript
+// Strict security for production
+enableDnsRebindingProtection: true,   // Enabled for production
+allowedOrigins: [
+  'https://your-domain.com',
+  'https://app.your-domain.com'
+  // null/undefined origins BLOCKED in production
+]
+```
+
+**⚠️ Security Note**: The development configuration allows `null` and `undefined` origins to support testing tools like the MCP inspector. This is automatically disabled in production to prevent security vulnerabilities.
+
+### Testing with MCP Inspector
+
+The current implementation supports the official MCP inspector for development and testing:
+
+1. **Start your server** in development mode
+2. **Run MCP inspector**: Connect to `http://localhost:3000/api/v1/mcp`
+3. **Test tools**: The inspector can call your MCP tools without Origin header restrictions
+
+This configuration ensures that:
+- Development tools work seamlessly
+- Production deployments maintain strict security
+- No manual configuration changes needed between environments
 
 ## Next Steps
 
