@@ -14,7 +14,7 @@ const transports = {}
  * @param {import('@hapi/hapi').ResponseToolkit} h - Hapi response toolkit
  * @returns {import('@hapi/hapi').ResponseObject} Response object
  */
-async function handleMcpDelete(request, h) {
+async function handleMcpDelete (request, h) {
   const logger = createLogger()
   const sessionId = request.headers['mcp-session-id']
 
@@ -51,14 +51,14 @@ async function handleMcpDelete(request, h) {
 /**
  * Handler for MCP transport requests - POST method
  * Implements the official StreamableHTTPServerTransport pattern from MCP SDK
- * 
+ *
  * @param {import('@hapi/hapi').Request} request - Hapi request object
  * @param {import('@hapi/hapi').ResponseToolkit} h - Hapi response toolkit
  * @returns {import('@hapi/hapi').ResponseObject} Response object
  */
-async function handleMcpTransport(request, h) {
+async function handleMcpTransport (request, h) {
   const logger = createLogger()
-  
+
   // Check for existing session ID
   const sessionId = request.headers['mcp-session-id']
   let transport
@@ -68,7 +68,6 @@ async function handleMcpTransport(request, h) {
       // Reuse existing transport
       transport = transports[sessionId]
       logger.debug('Reusing existing MCP session', JSON.stringify({ sessionId }))
-
     } else if (!sessionId && isInitializeRequest(request.payload)) {
       // New initialization request - create new session
       logger.info('Creating new MCP session for initialize request')
@@ -140,7 +139,6 @@ async function handleMcpTransport(request, h) {
       if (initializedSessionId) {
         request.raw.res.setHeader('Mcp-Session-Id', initializedSessionId)
       }
-
     } else {
       // Invalid request
       return h.response({
@@ -160,7 +158,7 @@ async function handleMcpTransport(request, h) {
     return h.abandon
   } catch (error) {
     logger.error('Error in MCP transport handler:', error)
-    
+
     // If response hasn't been sent yet, send error response
     if (!request.raw.res.headersSent) {
       return h.response({
@@ -172,7 +170,7 @@ async function handleMcpTransport(request, h) {
         id: request.payload?.id || null
       }).code(500)
     }
-    
+
     // Response already sent, can't do anything
     return h.abandon
   }
@@ -181,21 +179,21 @@ async function handleMcpTransport(request, h) {
 /**
  * Handler for GET requests - Server-to-client notifications via SSE
  */
-async function handleMcpGet(request, h) {
+async function handleMcpGet (request, h) {
   const logger = createLogger()
   const sessionId = request.headers['mcp-session-id']
-  
+
   if (!sessionId || !transports[sessionId]) {
     return h.response('Invalid or missing session ID').code(400)
   }
-  
+
   if (!sessionId || !transports[sessionId]) {
     return h.response('Invalid or missing session ID').code(400)
   }
-  
+
   const transport = transports[sessionId]
   logger.debug('Handling MCP DELETE request for session termination', { sessionId })
-  
+
   try {
     await transport.handleRequest(request.raw.req, request.raw.res)
     return h.abandon
@@ -221,7 +219,7 @@ const mcpTransportRoutes = [
       description: 'Handle MCP transport requests (POST)',
       notes: 'Processes client-to-server MCP requests using StreamableHTTPServerTransport',
       tags: ['api', 'mcp', 'transport'],
-      payload: { 
+      payload: {
         parse: true,
         allow: 'application/json'
       },

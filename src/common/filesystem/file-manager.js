@@ -3,27 +3,26 @@ import path from 'path'
 import { createLogger } from '../logging/logger.js'
 
 /**
- * Simple file system manager for note operations
- * Handles basic file read/write operations for the MCP notes server
+ * Create a file manager factory function
+ * @param {string} baseDir - Base directory for file operations
+ * @returns {object} File manager object with methods
  */
-class FileManager {
-  constructor(baseDir) {
-    if (!baseDir) {
-      throw new Error('Base directory is required')
-    }
-    this.baseDir = baseDir
-    this.logger = createLogger()
+function createFileManager (baseDir) {
+  if (!baseDir) {
+    throw new Error('Base directory is required')
   }
+
+  const logger = createLogger()
 
   /**
    * Ensure the base directory exists
    */
-  async ensureDirectory() {
+  async function ensureDirectory () {
     try {
-      await fs.mkdir(this.baseDir, { recursive: true })
-      this.logger.debug(`Directory ensured: ${this.baseDir}`)
+      await fs.mkdir(baseDir, { recursive: true })
+      logger.debug(`Directory ensured: ${baseDir}`)
     } catch (error) {
-      this.logger.error(`Error creating directory ${this.baseDir}:`, error)
+      logger.error(`Error creating directory ${baseDir}:`, error)
       throw error
     }
   }
@@ -34,7 +33,7 @@ class FileManager {
    * @param {string} content - Content to write to the file
    * @returns {Promise<string>} Full path of the written file
    */
-  async writeFile(filename, content) {
+  async function writeFile (filename, content) {
     try {
       if (!filename || typeof filename !== 'string') {
         throw new Error('Filename is required and must be a string')
@@ -43,14 +42,14 @@ class FileManager {
         throw new Error('Content must be a string')
       }
 
-      await this.ensureDirectory()
-      const filePath = path.join(this.baseDir, filename)
+      await ensureDirectory()
+      const filePath = path.join(baseDir, filename)
       await fs.writeFile(filePath, content, 'utf8')
-      
-      this.logger.info(`File written: ${filename}`)
+
+      logger.info(`File written: ${filename}`)
       return filePath
     } catch (error) {
-      this.logger.error(`Error writing file ${filename}:`, error)
+      logger.error(`Error writing file ${filename}:`, error)
       throw error
     }
   }
@@ -60,23 +59,23 @@ class FileManager {
    * @param {string} filename - Name of the file to read
    * @returns {Promise<string|null>} File content or null if file doesn't exist
    */
-  async readFile(filename) {
+  async function readFile (filename) {
     try {
       if (!filename || typeof filename !== 'string') {
         throw new Error('Filename is required and must be a string')
       }
 
-      const filePath = path.join(this.baseDir, filename)
+      const filePath = path.join(baseDir, filename)
       const content = await fs.readFile(filePath, 'utf8')
-      
-      this.logger.debug(`File read: ${filename}`)
+
+      logger.debug(`File read: ${filename}`)
       return content
     } catch (error) {
       if (error.code === 'ENOENT') {
-        this.logger.debug(`File not found: ${filename}`)
+        logger.debug(`File not found: ${filename}`)
         return null
       }
-      this.logger.error(`Error reading file ${filename}:`, error)
+      logger.error(`Error reading file ${filename}:`, error)
       throw error
     }
   }
@@ -87,17 +86,17 @@ class FileManager {
    * @param {string} [extension] - File extension to filter by (e.g., '.md', '.txt')
    * @returns {Promise<string[]>} Array of filenames
    */
-  async listFiles(relativePath = '.', extension = '.txt') {
+  async function listFiles (relativePath = '.', extension = '.txt') {
     try {
-      await this.ensureDirectory()
-      const targetDir = relativePath === '.' ? this.baseDir : path.join(this.baseDir, relativePath)
+      await ensureDirectory()
+      const targetDir = relativePath === '.' ? baseDir : path.join(baseDir, relativePath)
       const files = await fs.readdir(targetDir)
       const filteredFiles = files.filter(file => file.endsWith(extension))
-      
-      this.logger.debug(`Listed ${filteredFiles.length} ${extension} files from ${relativePath}`)
+
+      logger.debug(`Listed ${filteredFiles.length} ${extension} files from ${relativePath}`)
       return filteredFiles
     } catch (error) {
-      this.logger.error('Error listing files:', error)
+      logger.error('Error listing files:', error)
       throw error
     }
   }
@@ -107,13 +106,13 @@ class FileManager {
    * @param {string} filename - Name of the file to check
    * @returns {Promise<boolean>} True if file exists, false otherwise
    */
-  async fileExists(filename) {
+  async function fileExists (filename) {
     try {
       if (!filename || typeof filename !== 'string') {
         throw new Error('Filename is required and must be a string')
       }
 
-      const filePath = path.join(this.baseDir, filename)
+      const filePath = path.join(baseDir, filename)
       await fs.access(filePath)
       return true
     } catch {
@@ -126,15 +125,15 @@ class FileManager {
    * @param {string} filename - Name of the file
    * @returns {Promise<object|null>} File stats or null if file doesn't exist
    */
-  async getFileStats(filename) {
+  async function getFileStats (filename) {
     try {
       if (!filename || typeof filename !== 'string') {
         throw new Error('Filename is required and must be a string')
       }
 
-      const filePath = path.join(this.baseDir, filename)
+      const filePath = path.join(baseDir, filename)
       const stats = await fs.stat(filePath)
-      
+
       return {
         size: stats.size,
         createdAt: stats.birthtime,
@@ -145,10 +144,41 @@ class FileManager {
       if (error.code === 'ENOENT') {
         return null
       }
-      this.logger.error(`Error getting file stats for ${filename}:`, error)
+      logger.error(`Error getting file stats for ${filename}:`, error)
       throw error
     }
   }
+
+  /**
+   * Delete a file
+   * @param {string} filename - Name of the file to delete
+   * @returns {Promise<void>}
+   */
+  async function deleteFile (filename) {
+    try {
+      if (!filename || typeof filename !== 'string') {
+        throw new Error('Filename is required and must be a string')
+      }
+
+      const filePath = path.join(baseDir, filename)
+      await fs.unlink(filePath)
+
+      logger.info(`File deleted: ${filename}`)
+    } catch (error) {
+      logger.error(`Error deleting file ${filename}:`, error)
+      throw error
+    }
+  }
+
+  return {
+    ensureDirectory,
+    writeFile,
+    readFile,
+    listFiles,
+    fileExists,
+    getFileStats,
+    deleteFile
+  }
 }
 
-export { FileManager }
+export { createFileManager }

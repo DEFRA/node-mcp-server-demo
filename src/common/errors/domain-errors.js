@@ -1,56 +1,70 @@
 /**
- * Base class for domain-specific errors
+ * Create a domain-specific error
+ * @param {string} message - Error message
+ * @param {number} statusCode - HTTP status code
+ * @param {string} name - Error name
+ * @returns {Error} Domain error instance
  */
-class DomainError extends Error {
-  constructor(message, statusCode = 400) {
-    super(message)
-    this.name = this.constructor.name
-    this.statusCode = statusCode
-    Error.captureStackTrace(this, this.constructor)
-  }
+function createDomainError (message, statusCode = 400, name = 'DomainError') {
+  const error = new Error(message)
+  error.name = name
+  error.statusCode = statusCode
+  Error.captureStackTrace(error, createDomainError)
+  return error
 }
 
-/**
- * Error thrown when a note is not found
- */
-class NoteNotFoundError extends DomainError {
-  constructor(noteId) {
-    super(`Note with ID '${noteId}' not found`, 404)
-  }
+// Error constructor functions for compatibility with existing class-based usage
+function NoteNotFoundError (noteId) {
+  return createDomainError(
+    `Note with ID '${noteId}' not found`,
+    404,
+    'NoteNotFoundError'
+  )
 }
 
-/**
- * Error thrown when a note creation fails due to invalid data
- */
-class InvalidNoteDataError extends DomainError {
-  constructor(message) {
-    super(`Invalid note data: ${message}`, 400)
-  }
+function InvalidNoteDataError (message) {
+  return createDomainError(
+    `Invalid note data: ${message}`,
+    400,
+    'InvalidNoteDataError'
+  )
 }
 
-/**
- * Error thrown when file operations fail
- */
-class FileOperationError extends DomainError {
-  constructor(operation, filename, originalError) {
-    super(`Failed to ${operation} file '${filename}': ${originalError.message}`, 500)
-    this.originalError = originalError
-  }
+function McpProtocolError (message) {
+  return createDomainError(
+    `MCP protocol error: ${message}`,
+    400,
+    'McpProtocolError'
+  )
 }
 
-/**
- * Error thrown when MCP protocol validation fails
- */
-class McpProtocolError extends DomainError {
-  constructor(message) {
-    super(`MCP protocol error: ${message}`, 400)
-  }
+// Factory functions (preferred approach going forward)
+function createNoteNotFoundError (noteId) {
+  return NoteNotFoundError(noteId)
+}
+
+function createInvalidNoteDataError (message) {
+  return InvalidNoteDataError(message)
+}
+
+function createFileOperationError (operation, filename, originalError) {
+  const error = createDomainError(
+    `Failed to ${operation} file '${filename}': ${originalError.message}`,
+    500,
+    'FileOperationError'
+  )
+  error.originalError = originalError
+  return error
+}
+
+function createMcpProtocolError (message) {
+  return McpProtocolError(message)
 }
 
 export {
-  DomainError,
-  NoteNotFoundError,
-  InvalidNoteDataError,
-  FileOperationError,
-  McpProtocolError
+  createDomainError,
+  createNoteNotFoundError,
+  createInvalidNoteDataError,
+  createFileOperationError,
+  createMcpProtocolError
 }

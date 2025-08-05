@@ -1,20 +1,17 @@
-import { NoteModel } from '../models/note.js'
-import { NoteParser } from '../utils/note-parser.js'
-import { FileManager } from '../../common/filesystem/file-manager.js'
-import { NoteNotFoundError, FileOperationError } from '../../common/errors/domain-errors.js'
+import { createNote } from '../models/note.js'
+import { parseFileContent } from '../utils/note-parser.js'
+import { createFileManager } from '../../common/filesystem/file-manager.js'
+import { createNoteNotFoundError, createFileOperationError } from '../../common/errors/domain-errors.js'
 import { createLogger } from '../../common/logging/logger.js'
 
 /**
- * File-based Note Repository
- * Implements the repository pattern for note persistence using the file system
+ * Create a file-based note repository
+ * @param {string} notesDirectory - Directory for storing notes
+ * @returns {object} Repository object with methods
  */
-class FileNoteRepository {
-  constructor(notesDirectory) {
-    this.notesDirectory = notesDirectory
-    this.fileManager = new FileManager(notesDirectory)
-    this.noteParser = new NoteParser()
-    this.logger = createLogger()
-  }
+function createFileNoteRepository (notesDirectory) {
+  const fileManager = createFileManager(notesDirectory)
+  const logger = createLogger()
 
   /**
    * Create a new note
@@ -22,19 +19,18 @@ class FileNoteRepository {
    * @returns {Promise<Object>} The created note
    * @throws {FileOperationError} When file operations fail
    */
-  async create(noteData) {
+  async function create (noteData) {
     try {
-      const note = new NoteModel(noteData)
+      const note = createNote(noteData)
       const fileName = `${note.id}.md`
-      
-      await this.fileManager.writeFile(fileName, note.toFileContent())
-      
-      this.logger.debug('Note created in repository:', { id: note.id, fileName })
+
+      await fileManager.writeFile(fileName, note.toFileContent())
+
+      logger.debug('Note created in repository:', { id: note.id, fileName })
       return note.toJSON()
-      
     } catch (error) {
-      this.logger.error('Failed to create note in repository:', error)
-      throw new FileOperationError(`Failed to create note: ${error.message}`)
+      logger.error('Failed to create note:', error)
+      throw createFileOperationError(`Failed to create note: ${error.message}`)
     }
   }
 
@@ -45,26 +41,22 @@ class FileNoteRepository {
    * @throws {NoteNotFoundError} When note is not found
    * @throws {FileOperationError} When file operations fail
    */
-  async findById(id) {
+  async function findById (id) {
     try {
       const fileName = `${id}.md`
-      
-      if (!(await this.fileManager.fileExists(fileName))) {
-        throw new NoteNotFoundError(`Note with ID ${id} not found`)
+
+      if (!(await fileManager.fileExists(fileName))) {
+        throw createNoteNotFoundError(`Note with ID ${id} not found`)
       }
 
-      const fileContent = await this.fileManager.readFile(fileName)
-      const note = this.noteParser.parseFileContent(fileContent, fileName)
-      
-      this.logger.debug('Note found in repository:', { id: note.id, fileName })
+      const fileContent = await fileManager.readFile(fileName)
+      const note = parseFileContent(fileContent, fileName)
+
+      logger.debug('Note found in repository:', { id: note.id, fileName })
       return note.toJSON()
-      
     } catch (error) {
-      if (error instanceof NoteNotFoundError) {
-        throw error
-      }
-      this.logger.error('Failed to find note in repository:', error)
-      throw new FileOperationError(`Failed to read note: ${error.message}`)
+      logger.error('Failed to find note in repository:', error)
+      throw createFileOperationError(`Failed to read note: ${error.message}`)
     }
   }
 
@@ -73,27 +65,26 @@ class FileNoteRepository {
    * @returns {Promise<Array>} Array of all notes
    * @throws {FileOperationError} When file operations fail
    */
-  async getAll() {
+  async function getAll () {
     try {
-      const files = await this.fileManager.listFiles('.', '.md')
+      const files = await fileManager.listFiles('.', '.md')
       const notes = []
 
       for (const fileName of files) {
         try {
-          const fileContent = await this.fileManager.readFile(fileName)
-          const note = this.noteParser.parseFileContent(fileContent, fileName)
+          const fileContent = await fileManager.readFile(fileName)
+          const note = parseFileContent(fileContent, fileName)
           notes.push(note.toJSON())
         } catch (error) {
-          this.logger.warn('Skipping invalid note file:', { fileName, error: error.message })
+          logger.warn('Skipping invalid note file:', { fileName, error: error.message })
         }
       }
 
-      this.logger.debug('Retrieved all notes from repository:', { count: notes.length })
+      logger.debug('Retrieved all notes from repository:', { count: notes.length })
       return notes
-      
     } catch (error) {
-      this.logger.error('Failed to get all notes from repository:', error)
-      throw new FileOperationError(`Failed to read notes: ${error.message}`)
+      logger.error('Failed to get all notes from repository:', error)
+      throw createFileOperationError(`Failed to read notes: ${error.message}`)
     }
   }
 
@@ -105,26 +96,22 @@ class FileNoteRepository {
    * @throws {NoteNotFoundError} When note is not found
    * @throws {FileOperationError} When file operations fail
    */
-  async update(id, noteData) {
+  async function update (id, noteData) {
     try {
       // First check if note exists
-      await this.findById(id)
-      
+      await findById(id)
+
       // Create updated note with same ID
-      const updatedNote = new NoteModel({ ...noteData, id })
+      const updatedNote = createNote({ ...noteData, id })
       const fileName = `${id}.md`
-      
-      await this.fileManager.writeFile(fileName, updatedNote.toFileContent())
-      
-      this.logger.debug('Note updated in repository:', { id: updatedNote.id, fileName })
+
+      await fileManager.writeFile(fileName, updatedNote.toFileContent())
+
+      logger.debug('Note updated in repository:', { id: updatedNote.id, fileName })
       return updatedNote.toJSON()
-      
     } catch (error) {
-      if (error instanceof NoteNotFoundError) {
-        throw error
-      }
-      this.logger.error('Failed to update note in repository:', error)
-      throw new FileOperationError(`Failed to update note: ${error.message}`)
+      logger.error('Failed to update note in repository:', error)
+      throw createFileOperationError(`Failed to update note: ${error.message}`)
     }
   }
 
@@ -135,26 +122,30 @@ class FileNoteRepository {
    * @throws {NoteNotFoundError} When note is not found
    * @throws {FileOperationError} When file operations fail
    */
-  async delete(id) {
+  async function deleteNote (id) {
     try {
       const fileName = `${id}.md`
-      
-      if (!(await this.fileManager.fileExists(fileName))) {
-        throw new NoteNotFoundError(`Note with ID ${id} not found`)
+
+      if (!(await fileManager.fileExists(fileName))) {
+        throw createNoteNotFoundError(`Note with ID ${id} not found`)
       }
 
-      await this.fileManager.deleteFile(fileName)
-      
-      this.logger.debug('Note deleted from repository:', { id, fileName })
-      
+      await fileManager.deleteFile(fileName)
+
+      logger.debug('Note deleted from repository:', { id, fileName })
     } catch (error) {
-      if (error instanceof NoteNotFoundError) {
-        throw error
-      }
-      this.logger.error('Failed to delete note from repository:', error)
-      throw new FileOperationError(`Failed to delete note: ${error.message}`)
+      logger.error('Failed to delete note from repository:', error)
+      throw createFileOperationError(`Failed to delete note: ${error.message}`)
     }
+  }
+
+  return {
+    create,
+    findById,
+    getAll,
+    update,
+    delete: deleteNote
   }
 }
 
-export { FileNoteRepository }
+export { createFileNoteRepository }

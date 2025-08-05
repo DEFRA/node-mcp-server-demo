@@ -4,13 +4,13 @@ import { z } from 'zod'
 /**
  * Register MCP tools with the SDK McpServer
  * This bridges our existing service layer with the MCP SDK
- * 
+ *
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer - MCP SDK server instance
  * @param {import('../../notes/services/note.js').NoteService} noteService - Our existing note service
  */
-async function registerMcpTools(mcpServer, noteService) {
+async function registerMcpTools (mcpServer, noteService) {
   const logger = createLogger()
-  
+
   logger.info('Registering MCP tools with SDK server')
 
   // Create Note Tool
@@ -22,11 +22,11 @@ async function registerMcpTools(mcpServer, noteService) {
     }
   }, async (params) => {
     logger.debug('Executing create_note tool', { params })
-    
+
     try {
       const { title, content } = params
       const result = await noteService.createNote({ title, content })
-      
+
       return {
         content: [{
           type: 'text',
@@ -59,11 +59,11 @@ The note has been saved and can be retrieved using the get_note tool with ID: ${
     }
   }, async (params) => {
     logger.debug('Executing get_note tool', { params })
-    
+
     try {
       const { noteId } = params
       const result = await noteService.getNoteById(noteId)
-      
+
       if (!result) {
         return {
           content: [{
@@ -105,10 +105,10 @@ ${result.details.content}`
     description: 'List all available notes with their metadata'
   }, async (params) => {
     logger.debug('Executing list_notes tool', { params })
-    
+
     try {
       const notes = await noteService.getAllNotes()
-      
+
       if (notes.length === 0) {
         return {
           content: [{
@@ -118,7 +118,7 @@ ${result.details.content}`
         }
       }
 
-      const notesList = notes.map(noteWrapper => 
+      const notesList = notes.map(noteWrapper =>
         `- **${noteWrapper.details.title}** (ID: ${noteWrapper.details.id}) - Created: ${noteWrapper.details.createdAt}`
       ).join('\n')
 
