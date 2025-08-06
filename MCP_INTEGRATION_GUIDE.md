@@ -63,6 +63,8 @@ The Model Context Protocol (MCP) enables AI assistants to securely connect to lo
 }
 ```
 
+Errors**: `/src/common/errors/domain-errors.js` - Domain-specific error factory functions
+
 ### Why MCP Uses JSON-RPC
 
 The **Model Context Protocol** is built on top of JSON-RPC because:
@@ -370,7 +372,7 @@ async function handleMcpTransport(request, h) {
   
   // Return h.abandon() since transport handles the response
   return h.abandon
-}
+import { createMcpProtocolError } from '../../../../common/errors/domain-errors.js'
 
 const mcpTransportRoutes = [
   {
@@ -747,25 +749,23 @@ The implementation integrates with the service layer architecture:
 // src/api/plugins/mcp.js
 import { FileNoteRepository } from '../../data/repositories/note.js'
 import { NoteService } from '../v1/notes/services/note.js'
-import { McpService } from '../v1/mcp/services/mcp.js'
-import { mcpRoutes } from '../v1/mcp/endpoints/mcp.js'
+import { createMcpService } from '../v1/mcp/services/mcp-tools.js'
+import { mcpTransportRoutes } from '../v1/mcp/endpoints/mcp-transport.js'
 
-const mcpPlugin = {
-  name: 'mcp-server',
+const mcpTransportPlugin = {
+  name: 'mcp-transport-server',
   version: '1.0.0',
   register: async function (server, options) {
-    // Initialize repository and services following patterns
+    // Initialize repository and services using factory functions
     const notesDir = config.get('mcp.notesDir', './data/notes')
-    const noteRepository = new FileNoteRepository(notesDir)
-    const noteService = new NoteService(noteRepository)
-    const mcpService = new McpService(noteService)
+    const noteRepository = createFileNoteRepository(notesDir)
+    const noteService = createNoteService(noteRepository)
 
     // Store services in server app context
-    server.app.mcpService = mcpService
     server.app.noteService = noteService
 
     // Register routes
-    server.route(mcpRoutes)
+    server.route(mcpTransportRoutes)
   }
 }
 ```
@@ -776,52 +776,47 @@ Following the Repository Pattern with domain error handling:
 
 ```javascript
 // src/data/repositories/note.js
-import { NoteModel } from '../models/note.js'
-import { NoteParser } from '../utils/note-parser.js'
-import { FileManager } from '../../common/filesystem/file-manager.js'
-import { NoteNotFoundError, FileOperationError } from '../../common/errors/domain-errors.js'
+import { createNote } from '../models/note.js'
+import { parseFileContent } from '../utils/note-parser.js'
+import { createFileManager } from '../../common/filesystem/file-manager.js'
+import { createNoteNotFoundError, createFileOperationError } from '../../common/errors/domain-errors.js'
 
-class FileNoteRepository {
-  constructor(notesDirectory) {
-    this.notesDirectory = notesDirectory
-    this.fileManager = new FileManager(notesDirectory)
-    this.noteParser = new NoteParser()
-    this.logger = createLogger()
-  }
+function createFileNoteRepository(notesDirectory) {
+  const fileManager = createFileManager(notesDirectory)
+  const logger = createLogger()
 
-  async create(noteData) {
-    try {
-      const note = new NoteModel(noteData)
-      const fileName = `${note.id}.md`
-      
-      await this.fileManager.writeFile(fileName, note.toFileContent())
-      
-      this.logger.debug('Note created in repository:', { id: note.id, fileName })
-      return note.toJSON()
-      
-    } catch (error) {
-      this.logger.error('Failed to create note in repository:', error)
-      throw new FileOperationError(`Failed to create note: ${error.message}`)
-    }
-  }
-
-  async findById(id) {
-    try {
-      const fileName = `${id}.md`
-      
-      if (!(await this.fileManager.fileExists(fileName))) {
-        throw new NoteNotFoundError(`Note with ID ${id} not found`)
+  return {
+    async create(noteData) {
+      try {
+        const note = createNote(noteData)
+        const fileName = `${note.id}.md`
+        
+        await fileManager.writeFile(fileName, note.toFileContent())
+        
+        logger.debug('Note created in repository:', { id: note.id, fileName })
+        return note.toJSON()
+      } catch (error) {
+        logger.error('Failed to create note in repository:', error)
+        throw createFileOperationError(`Failed to create note: ${error.message}`)
       }
+    },
 
-      const fileContent = await this.fileManager.readFile(fileName)
-      const note = this.noteParser.parseFileContent(fileContent, fileName)
-      
-      return note.toJSON()
-    } catch (error) {
-      if (error instanceof NoteNotFoundError) {
-        throw error
+    async findById(id) {
+      try {
+        const fileName = `${id}.md`
+        
+        if (!(await fileManager.fileExists(fileName))) {
+          throw createNoteNotFoundError(`Note with ID ${id} not found`)
+        }
+
+        const fileContent = await fileManager.readFile(fileName)
+        const note = parseFileContent(fileContent, fileName)
+        
+        return note.toJSON()
+      } catch (error) {
+        logger.error('Failed to find note in repository:', error) 
+        throw createFileOperationError(`Failed to read note: ${error.message}`)
       }
-      throw new FileOperationError(`Failed to read note: ${error.message}`)
     }
   }
 }
@@ -885,16 +880,18 @@ CREATED: ${this.createdAt.toISOString()}
 ---`
 
   return `${header}
-${this.content}`
+${content}`
 }
 
-// Use NoteParser utility class for parsing (no static methods)
-class NoteParser {
-  parseFileContent(content, filename) {
-    // Parse file content and return new NoteModel instance
-    const noteData = this._extractNoteData(content)
-    return new NoteModel(noteData)
-  }
+// Use utility functions for parsing (functional approach)
+function parseFileContent(content, filename) {
+  // Parse file content and return note object using factory function
+  const noteData = extractNoteData(content)
+  return createNote(noteData)
+}
+
+function createNoteFromDocument(content, filename) {
+  return parseFileContent(content, filename)
 }
 ```
 

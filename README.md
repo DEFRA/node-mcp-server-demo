@@ -8,7 +8,9 @@ The Model Context Protocol (MCP) is an open standard for connecting AI assistant
 
 ## Features
 
-- **Hapi.js Framework**: RESTful API with MCP integration
+- **Hapi.js Framework**: RESTful API with MCP SDK integration
+- **Functional Architecture**: Pure functional programming with factory functions (no classes)
+- **MCP SDK Transport**: Official StreamableHTTPServerTransport for protocol compliance
 - **File-based Storage**: Notes stored as structured text files
 - **Docker Support**: Containerized deployment with MongoDB
 - **MCP Tools**:
@@ -153,17 +155,18 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 
 ### Architecture Overview
 
-This project implements MCP (Model Context Protocol) using enterprise architecture patterns with clear separation of concerns:
+This project implements MCP (Model Context Protocol) using functional programming patterns and the official MCP SDK:
 
 ```
-MCP Client → HTTP POST /api/v1/mcp → Hapi Endpoints → Services → Repository → File System
+MCP Client → HTTP POST /api/v1/mcp → StreamableHTTPServerTransport → MCP Tools → Services → Repository → File System
 ```
 
 **Key Architectural Components:**
 - **Client Layer**: MCP clients (GUI Inspector, curl, AI assistants)
-- **API Layer**: Hapi.js server with JSON-RPC endpoints and validation
-- **Service Layer**: Business logic for MCP operations and note management
-- **Data Layer**: Repository pattern with file-based storage
+- **Transport Layer**: Official MCP SDK StreamableHTTPServerTransport for protocol handling
+- **API Layer**: Hapi.js server with MCP transport integration and session management
+- **Service Layer**: Business logic using factory functions for MCP operations and note management
+- **Data Layer**: Repository pattern with factory functions for file-based storage
 - **Storage Layer**: Structured text files in `data/notes/` directory
 
 For a detailed visual representation of the architecture, see the [MCP Integration Guide](./MCP_INTEGRATION_GUIDE.md#architecture-overview).
@@ -174,29 +177,33 @@ For a detailed visual representation of the architecture, see the [MCP Integrati
 src/
 ├── api/
 │   ├── plugins/
-│   │   └── mcp.js              # MCP server plugin
+│   │   └── mcp-transport.js    # MCP transport plugin with StreamableHTTPServerTransport
 │   ├── server.js               # Hapi server configuration
 │   └── v1/
+│       ├── common/
+│       │   └── schemas/        # Common validation schemas
 │       ├── mcp/
 │       │   ├── endpoints/
-│       │   │   └── mcp.js      # MCP endpoint handlers
+│       │   │   └── mcp-transport.js  # MCP transport endpoint handlers
 │       │   ├── services/
-│       │   │   └── mcp.js      # MCP business logic
-│       │   └── schemas/
-│       │       └── mcp.js      # MCP validation schemas
+│       │   │   └── mcp-tools.js      # MCP tools registration and logic
+│       │   └── schemas/        # MCP validation schemas
 │       └── notes/
 │           └── services/
-│               └── note.js     # Note business logic
+│               └── note.js     # Note service factory functions
 ├── common/
-│   └── errors/
-│       └── domain-errors.js    # Domain-specific errors
+│   ├── errors/
+│   │   └── domain-errors.js    # Domain error factory functions
+│   ├── filesystem/
+│   │   └── file-manager.js     # File manager factory functions
+│   └── logging/                # Logger utilities
 ├── data/
 │   ├── models/
-│   │   └── note.js             # Note data model
+│   │   └── note.js             # Note model factory functions
 │   ├── repositories/
-│   │   └── note.js             # File-based note repository
+│   │   └── note.js             # File-based note repository factory functions
 │   └── utils/
-│       └── note-parser.js      # File parsing utilities
+│       └── note-parser.js      # File parsing utility functions
 ```
 
 ### File Storage Format
@@ -215,23 +222,24 @@ CREATED: <iso_timestamp>
 
 This implementation demonstrates:
 
-1. **Enterprise Architecture Patterns**: Repository Pattern, Service Layer, and Domain-Driven Design
-2. **Direct JSON-RPC Handling**: JSON-RPC implementation integrated with Hapi.js route handlers following enterprise patterns
-3. **Layered Architecture**: Clear separation between endpoints, services, repositories, and data models
-4. **Domain Error Handling**: Custom error classes with proper HTTP status codes using Boom
-5. **Validation**: Comprehensive Joi schemas for request validation
-6. **Tool Registration**: Three MCP tools with proper schemas and business logic separation
-7. **File-based Storage**: Repository pattern implementation with file-based note storage
+1. **Functional Architecture**: Pure functional programming with factory functions instead of classes
+2. **MCP SDK Integration**: StreamableHTTPServerTransport for official MCP protocol support
+3. **Factory Function Patterns**: All object creation through factory functions (createNoteService, createFileNoteRepository, etc.)
+4. **Layered Architecture**: Clear separation between endpoints, services, repositories, and data models
+5. **Domain Error Handling**: Factory-based error creation with proper HTTP status codes using Boom
+6. **Validation**: Comprehensive Joi schemas for request validation
+7. **Tool Registration**: Three MCP tools with proper schemas and business logic separation
+8. **File-based Storage**: Repository pattern implementation with file-based note storage
 
 ### Architecture Layers
 
-- **Endpoints** (`/api/v1/mcp/endpoints/`): HTTP route handlers with Boom error handling
-- **Services** (`/api/v1/mcp/services/` & `/api/v1/notes/services/`): Business logic layer
-- **Repository** (`/src/data/repositories/`): Data access layer with Repository Pattern
-- **Models** (`/src/data/models/`): Domain models with validation
-- **Utilities** (`/src/data/utils/`): File parsing and helper utilities
+- **Endpoints** (`/api/v1/mcp/endpoints/`): HTTP route handlers with Boom error handling using MCP SDK transport
+- **Services** (`/api/v1/mcp/services/` & `/api/v1/notes/services/`): Business logic layer with factory functions
+- **Repository** (`/src/data/repositories/`): Data access layer with Repository Pattern using factory functions
+- **Models** (`/src/data/models/`): Domain models with validation using factory functions
+- **Utilities** (`/src/data/utils/`): File parsing and helper utility functions
 - **Schemas** (`/api/v1/mcp/schemas/`): Joi validation schemas
-- **Errors** (`/src/common/errors/`): Domain-specific error classes
+- **Errors** (`/src/common/errors/`): Domain-specific error factory functions
 
 ## Requirements
 

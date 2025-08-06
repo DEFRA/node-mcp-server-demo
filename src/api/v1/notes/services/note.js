@@ -15,7 +15,7 @@ function createNoteService (noteRepository) {
    * @param {string} noteData.title - The note title
    * @param {string} noteData.content - The note content
    * @returns {Promise<Object>} The created note
-   * @throws {InvalidNoteDataError} When note data is invalid
+   * @throws {InvalidNoteDataError} When note data is invalid (thrown by createInvalidNoteDataError)
    */
   async function createNote (noteData) {
     try {
@@ -43,7 +43,7 @@ function createNoteService (noteRepository) {
    * Get a note by ID
    * @param {string} id - The note ID
    * @returns {Promise<Object>} The note
-   * @throws {NoteNotFoundError} When note is not found
+   * @throws {NoteNotFoundError} When note is not found (thrown by createNoteNotFoundError)
    */
   async function getNoteById (id) {
     try {
@@ -94,8 +94,8 @@ function createNoteService (noteRepository) {
    * @param {string} id - The note ID
    * @param {Object} noteData - The updated note data
    * @returns {Promise<Object>} The updated note
-   * @throws {NoteNotFoundError} When note is not found
-   * @throws {InvalidNoteDataError} When note data is invalid
+   * @throws {NoteNotFoundError} When note is not found (thrown by createNoteNotFoundError)
+   * @throws {InvalidNoteDataError} When note data is invalid (thrown by createInvalidNoteDataError)
    */
   async function updateNote (id, noteData) {
     try {
@@ -121,7 +121,7 @@ function createNoteService (noteRepository) {
    * Delete a note
    * @param {string} id - The note ID
    * @returns {Promise<void>}
-   * @throws {NoteNotFoundError} When note is not found
+   * @throws {NoteNotFoundError} When note is not found (thrown by createNoteNotFoundError)
    */
   async function deleteNote (id) {
     try {

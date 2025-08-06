@@ -13,7 +13,7 @@ function generateNoteId () {
 /**
  * Validate note data
  * @param {Object} data - Note data to validate
- * @throws {InvalidNoteDataError} When note data is invalid
+ * @throws {InvalidNoteDataError} When note data is invalid (thrown by createInvalidNoteDataError)
  */
 function validateNoteData (data) {
   if (!data.title || typeof data.title !== 'string') {

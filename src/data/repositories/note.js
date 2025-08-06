@@ -38,8 +38,8 @@ function createFileNoteRepository (notesDirectory) {
    * Find a note by ID
    * @param {string} id - The note ID
    * @returns {Promise<Object>} The note
-   * @throws {NoteNotFoundError} When note is not found
-   * @throws {FileOperationError} When file operations fail
+   * @throws {NoteNotFoundError} When note is not found (thrown by createNoteNotFoundError)
+   * @throws {FileOperationError} When file operations fail (thrown by createFileOperationError)
    */
   async function findById (id) {
     try {
@@ -93,7 +93,7 @@ function createFileNoteRepository (notesDirectory) {
    * @param {string} id - The note ID
    * @param {Object} noteData - The updated note data
    * @returns {Promise<Object>} The updated note
-   * @throws {NoteNotFoundError} When note is not found
+   * @throws {Error} When note is not found (use createNoteNotFoundError)
    * @throws {FileOperationError} When file operations fail
    */
   async function update (id, noteData) {
@@ -119,7 +119,7 @@ function createFileNoteRepository (notesDirectory) {
    * Delete a note
    * @param {string} id - The note ID
    * @returns {Promise<void>}
-   * @throws {NoteNotFoundError} When note is not found
+   * @throws {Error} When note is not found (use createNoteNotFoundError)
    * @throws {FileOperationError} When file operations fail
    */
   async function deleteNote (id) {

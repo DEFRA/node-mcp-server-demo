@@ -3,7 +3,7 @@
 This directory stores note files created through the MCP (Model Context Protocol) server.
 
 ## File Format
-Notes are stored as `.txt` files with the following format:
+Notes are stored as `.md` files with the following format:
 
 ```
 ID: note_1234567890_abc123def
@@ -15,9 +15,9 @@ It can be multiple lines.
 ```
 
 ## File Naming
-Files are named using the pattern: `{noteId}_{sanitized_title}.txt`
+Files are named using the pattern: `{noteId}_{sanitized_title}.md`
 
-Example: `note_1234567890_abc123def_my_note_title.txt`
+Example: `note_1234567890_abc123def_my_note_title.md`
 
 ## Notes
 - Files are automatically created when notes are added via MCP tools

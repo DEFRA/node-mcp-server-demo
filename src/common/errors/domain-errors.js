@@ -13,30 +13,7 @@ function createDomainError (message, statusCode = 400, name = 'DomainError') {
   return error
 }
 
-// Error constructor functions for compatibility with existing class-based usage
-function NoteNotFoundError (noteId) {
-  return createDomainError(
-    `Note with ID '${noteId}' not found`,
-    404,
-    'NoteNotFoundError'
-  )
-}
-
-function InvalidNoteDataError (message) {
-  return createDomainError(
-    `Invalid note data: ${message}`,
-    400,
-    'InvalidNoteDataError'
-  )
-}
-
-function McpProtocolError (message) {
-  return createDomainError(
-    `MCP protocol error: ${message}`,
-    400,
-    'McpProtocolError'
-  )
-}
+// ...existing code...
 
 // Factory functions (preferred approach going forward)
 function createNoteNotFoundError (noteId) {

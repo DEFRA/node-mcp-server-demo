@@ -11,16 +11,16 @@ We implement the **MCP protocol** to serve modern client types and use cases:
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   Client Layer                          │
-├─────────────────────┬───────────────────────────────────┤
-│    MCP Clients      │                                   │
-│  (AI Assistants)    │                                   │
-└─────────────────────┴───────────────────────────────────┘
+├─────────────────────────────────────────────────────────┤
+│                    MCP Clients                          │
+│                  (AI Assistants)                        │
+└─────────────────────────────────────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────────────┐
 │                 Hapi.js Server                          │
 ├─────────────────────────────────────────────────────────┤
-│  MCP Transport      /api/v1/mcp (Protocol Layer)         │
-└─────────────────────┴───────────────────────────────────┘
+│  MCP Transport      /api/v1/mcp (Protocol Layer)        │
+└─────────────────────────────────────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────────────┐
 │              Shared Business Logic                      │
@@ -111,23 +111,26 @@ export const mcpTransportRoutes = [
 All MCP operations use the same underlying services:
 
 ```javascript
-// Shared service layer
-class NoteService {
-  async createNote(details) {
-    const note = await this.noteRepository.create({ details })
-    return { details: note.details }
-  }
+// Shared service layer using factory functions
+function createNoteService(noteRepository) {
+  return {
+    async createNote(details) {
+      const note = await noteRepository.create({ details })
+      return { details: note.details }
+    },
 
-  async getNoteById(id) {
-    const note = await this.noteRepository.findById(id)
-    if (!note) return null
-    return { details: note.details }
-  }
+    async getNoteById(id) {
+      const note = await noteRepository.findById(id)
+      if (!note) return null
+      return { details: note.details }
+    },
 
-  async listAllNotes() {
-    const notes = await this.noteRepository.getAll()
-    return notes.map(note => ({ details: note.details }))
+    async listAllNotes() {
+      const notes = await noteRepository.getAll()
+      return notes.map(note => ({ details: note.details }))
+    }
   }
+}
 }
 ```
 
