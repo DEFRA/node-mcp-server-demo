@@ -8,7 +8,7 @@ import { z } from 'zod'
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer - MCP SDK server instance
  * @param {import('../../notes/services/note.js').NoteService} noteService - Our existing note service
  */
-async function registerMcpTools (mcpServer, noteService) {
+async function registerMcpTools (mcpServer, noteService, mcpNoteService) {
   const logger = createLogger()
 
   logger.info('Registering MCP tools with SDK server')
@@ -134,6 +134,42 @@ ${result.details.content}`
         content: [{
           type: 'text',
           text: `❌ Failed to list notes: ${error.message}`
+        }],
+        isError: true
+      }
+    }
+  })
+
+  // Create Note in MongoDB
+  mcpServer.registerTool('create_mcp_note', {
+    description: 'Create a new MCP note with title and content',
+    inputSchema: {
+      title: z.string().min(1).max(255),
+      content: z.string().max(10000)
+    }
+  }, async function (params) {
+    logger.debug('Executing create_mcp_note tool', { params })
+
+    try {
+      const { title, content } = params
+      const result = await mcpNoteService.createNote({ title, content })
+
+      return {
+        content: [{
+          type: 'text',
+          text: `✅ **MCP Note created successfully!**
+
+**Title:** ${result.details.title}
+**Note ID:** ${result.details.noteId}
+**Created:** ${result.details.createdAt.toISOString()}`
+        }]
+      }
+    } catch (error) {
+      logger.error('Error in create_mpc_note tool:', error)
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ Failed to create MCP note: ${error.message}`
         }],
         isError: true
       }

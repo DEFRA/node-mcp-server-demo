@@ -75,7 +75,7 @@ const serverConfig = {
     databaseName: {
       doc: 'Database name for mongodb',
       format: String,
-      default: 'fcp-sfd-accelerator',
+      default: 'mcp-mongo-server-demo',
       env: 'MONGO_DATABASE'
     }
   },

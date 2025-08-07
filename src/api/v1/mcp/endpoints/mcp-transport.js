@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from 'crypto'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js'
@@ -130,7 +130,7 @@ async function handleMcpTransport (request, h) {
       })
 
       // Register our tools with the MCP server
-      await registerMcpTools(mcpServer, request.server.app.noteService)
+      await registerMcpTools(mcpServer, request.server.app.noteService, request.server.app.mcpNoteService)
 
       // Connect to the MCP server
       await mcpServer.connect(transport)

@@ -1,8 +1,11 @@
 import { createFileNoteRepository } from '../../data/repositories/note.js'
 import { createNoteService } from '../v1/notes/services/note.js'
 import { mcpTransportRoutes } from '../v1/mcp/endpoints/mcp-transport.js'
+import { createMcpNoteRepository } from '../../data/repositories/mcp-notes.js'
+import { createMcpNoteService } from '../v1/notes/services/mcp-notes.js'
 import { createLogger } from '../../common/logging/logger.js'
 import { config } from '../../config/index.js'
+import { MongoClient } from 'mongodb'
 
 /**
  * MCP Transport Server Hapi Plugin
@@ -18,15 +21,26 @@ const mcpTransportPlugin = {
     try {
       logger.info('Initializing MCP Transport server plugin...')
 
+      // Connect to MongoDB
+      const mongoUri = config.get('mongo.uri')
+      const mongoClient = new MongoClient(mongoUri)
+      await mongoClient.connect()
+      const db = mongoClient.db(config.get('mongo.databaseName'))
+
       // Initialize repository and services (reusing existing architecture)
       const notesDir = config.get('mcp.notesDir')
       const noteRepository = createFileNoteRepository(notesDir)
       const noteService = createNoteService(noteRepository)
 
+      // New mongo version
+      const mcpNoteRepository = createMcpNoteRepository(db)
+      const mcpNoteService = createMcpNoteService(mcpNoteRepository)
+
       logger.info(`MCP notes directory: ${notesDir}`)
 
       // Store services in server app context for use in transport handlers
       server.app.noteService = noteService
+      server.app.mcpNoteService = mcpNoteService
 
       // Register MCP transport routes (replaces existing /api/v1/mcp endpoint)
       server.route(mcpTransportRoutes)
