@@ -33,7 +33,55 @@ function createMcpNoteRepository (db) {
     }
   }
 
-  return { createNote }
+  /**
+   * Find a note by its noteId
+   * @param {string} noteId - The user-facing noteId (UUID)
+   * @returns {Promise<Object|null>} The note document or null if not found
+   */
+  async function findByNoteId (noteId) {
+    const note = await mcpNotes.findOne({ noteId })
+    if (!note) return null
+    return {
+      _id: note._id,
+      noteId: note.noteId,
+      title: note.title,
+      content: note.content,
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt
+    }
+  }
+
+  /**
+   * Get all notes
+   * @returns {Promise<Array>} Array of note documents
+   */
+  async function getAllNotes () {
+    const notes = await mcpNotes.find({}).toArray()
+    const formattedNotes = []
+    for (const note of notes) {
+      formattedNotes.push({
+        _id: note._id,
+        noteId: note.noteId,
+        title: note.title,
+        content: note.content,
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt
+      })
+    }
+    return formattedNotes
+  }
+
+  /**
+   * Delete a note by its noteId
+   * @param {string} noteId - The user-facing noteId (UUID)
+   * @returns {Promise<boolean>} True if deleted, false if not found
+   */
+  async function deleteByNoteId (noteId) {
+    const result = await mcpNotes.deleteOne({ noteId })
+    return result.deletedCount > 0
+  }
+
+  return { createNote, findByNoteId, getAllNotes, deleteByNoteId }
 }
 
 export { createMcpNoteRepository }
