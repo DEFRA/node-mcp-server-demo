@@ -49,7 +49,7 @@ function createMcpNoteService (mcpNoteRepository) {
         throw createInvalidNoteDataError('Note ID is required')
       }
 
-      const note = await mcpNoteRepository.findById(noteId)
+      const note = await mcpNoteRepository.findByNoteId(noteId)
 
       if (!note) {
         throw createNoteNotFoundError(`MCP note with ID ${noteId} not found`)

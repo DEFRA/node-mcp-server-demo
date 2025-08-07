@@ -176,6 +176,54 @@ ${result.details.content}`
     }
   })
 
+  // Get MCP Note by ID
+  mcpServer.registerTool('get_mcp_note', {
+    description: 'Retrieve an MCP note by its unique noteId',
+    inputSchema: {
+      noteId: z.string().uuid()
+    }
+  }, async function (params) {
+    logger.debug('Executing get_mcp_note tool', { params })
+
+    try {
+      const { noteId } = params
+      const result = await mcpNoteService.getNoteById(noteId)
+
+      if (!result) {
+        return {
+          content: [{
+            type: 'text',
+            text: `❌ Note not found with ID: ${noteId}`
+          }]
+        }
+      }
+
+      return {
+        content: [{
+          type: 'text',
+          text: `📝 **MCP Note Retrieved**
+
+**Title:** ${result.details.title}
+**ID:** ${result.details.noteId}
+**Created:** ${result.details.createdAt}
+**Updated:** ${result.details.updatedAt}
+
+**Content:**
+${result.details.content}`
+        }]
+      }
+    } catch (error) {
+      logger.error('Error in get_mcp_note tool:', error)
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ Failed to retrieve note: ${error.message}`
+        }],
+        isError: true
+      }
+    }
+  })
+
   logger.info('Successfully registered all MCP tools with SDK server')
 }
 
