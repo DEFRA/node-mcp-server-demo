@@ -45,7 +45,7 @@ docker compose up --build
 
 The server will be available at:
 - **API Server**: http://localhost:3000
-- **MCP Endpoint**: http://localhost:3000/api/v1/mcp
+- **MCP Endpoint**: http://localhost:3000/mcp/v1/mcp
 - **Health Check**: http://localhost:3000/health
 
 > **🔒 Security Note**: The development configuration allows MCP inspector connections without strict origin validation to support testing tools. For production deployment, ensure `NODE_ENV=production` is set to enable proper DNS rebinding protection. See [Production Deployment](./docs/production-deployment.md) for security requirements.
@@ -62,7 +62,7 @@ npx @modelcontextprotocol/inspector
 1. Open the Inspector URL in your browser (typically http://localhost:6274/...)
 2. Configure connection:
    - **Transport Type**: HTTP
-   - **URL**: `http://localhost:3000/api/v1/mcp`
+   - **URL**: `http://localhost:3000/mcp/v1/mcp`
 3. Test the tools in the Inspector interface
 
 ### 3. Test with curl (Command Line)
@@ -71,7 +71,7 @@ You can also test the MCP server directly using curl commands:
 
 #### Initialize the MCP Server
 ```bash
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -90,7 +90,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 
 #### List Available Tools
 ```bash
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -102,7 +102,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 
 #### Create a Note
 ```bash
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -120,7 +120,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 
 #### List All Notes
 ```bash
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -136,7 +136,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 #### Get a Specific Note
 ```bash
 # Replace "your_note_id" with an actual note ID from list_notes
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -158,7 +158,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 This project implements MCP (Model Context Protocol) using functional programming patterns and the official MCP SDK:
 
 ```
-MCP Client → HTTP POST /api/v1/mcp → StreamableHTTPServerTransport → MCP Tools → Services → Repository → File System
+MCP Client → HTTP POST /mcp/v1/mcp → StreamableHTTPServerTransport → MCP Tools → Services → Repository → File System
 ```
 
 **Key Architectural Components:**
@@ -175,7 +175,7 @@ For a detailed visual representation of the architecture, see the [MCP Integrati
 
 ```
 src/
-├── api/
+├── mcp/
 │   ├── plugins/
 │   │   └── mcp-transport.js    # MCP transport plugin with StreamableHTTPServerTransport
 │   ├── server.js               # Hapi server configuration
@@ -233,12 +233,12 @@ This implementation demonstrates:
 
 ### Architecture Layers
 
-- **Endpoints** (`/api/v1/mcp/endpoints/`): HTTP route handlers with Boom error handling using MCP SDK transport
-- **Services** (`/api/v1/mcp/services/` & `/api/v1/notes/services/`): Business logic layer with factory functions
+- **Endpoints** (`/mcp/v1/mcp/endpoints/`): HTTP route handlers with Boom error handling using MCP SDK transport
+- **Services** (`/mcp/v1/mcp/services/` & `/mcp/v1/notes/services/`): Business logic layer with factory functions
 - **Repository** (`/src/data/repositories/`): Data access layer with Repository Pattern using factory functions
 - **Models** (`/src/data/models/`): Domain models with validation using factory functions
 - **Utilities** (`/src/data/utils/`): File parsing and helper utility functions
-- **Schemas** (`/api/v1/mcp/schemas/`): Joi validation schemas
+- **Schemas** (`/mcp/v1/mcp/schemas/`): Joi validation schemas
 - **Errors** (`/src/common/errors/`): Domain-specific error factory functions
 
 ## Requirements
@@ -432,7 +432,7 @@ docker compose up --build -d
 
 ### MCP Endpoints
 
-- `POST /api/v1/mcp` - Main MCP JSON-RPC endpoint
+- `POST /mcp/v1/mcp` - Main MCP JSON-RPC endpoint
 
 ### Health Endpoints
 
@@ -453,7 +453,7 @@ docker compose up --build -d
 
 1. **Port Already in Use**: Change the port in `docker-compose.yml` or stop conflicting services
 2. **Permission Errors**: Ensure Docker has access to the project directory
-3. **MCP Connection Failed**: Verify the server is running and accessible at `http://localhost:3000/api/v1/mcp`
+3. **MCP Connection Failed**: Verify the server is running and accessible at `http://localhost:3000/mcp/v1/mcp`
 
 ### Viewing Logs
 

@@ -233,7 +233,7 @@ server {
     ssl_certificate_key /path/to/private.key;
     
     # MCP Transport endpoints need sticky sessions
-    location /api/v1/mcp {
+    location /mcp/v1/mcp {
         proxy_pass http://mcp_backend;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -334,7 +334,7 @@ volumes:
 ### 1. Health Checks
 
 ```javascript
-// src/api/probes/health/mcp-health.js
+// src/mcp/probes/health/mcp-health.js
 export async function mcpHealthCheck() {
   const checks = {
     redis: await checkRedisConnection(),
@@ -387,7 +387,7 @@ export const mcpMetrics = {
 ### 1. Rate Limiting
 
 ```javascript
-// src/api/plugins/rate-limit.js
+// src/mcp/plugins/rate-limit.js
 import { RateLimiterRedis } from 'rate-limiter-flexible'
 
 const rateLimiter = new RateLimiterRedis({
@@ -495,14 +495,14 @@ const mongoOptions = {
 
 ```bash
 # Test that development origins are blocked
-curl -X POST https://your-domain.com/api/v1/mcp \
+curl -X POST https://your-domain.com/mcp/v1/mcp \
   -H "Origin: http://localhost:3000" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"initialize","id":1}'
 # Should return 403 Forbidden in production
 
 # Test that null origins are blocked  
-curl -X POST https://your-domain.com/api/v1/mcp \
+curl -X POST https://your-domain.com/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"initialize","id":1}'
 # Should return 403 Forbidden in production

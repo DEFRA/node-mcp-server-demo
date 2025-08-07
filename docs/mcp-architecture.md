@@ -19,7 +19,7 @@ We implement the **MCP protocol** to serve modern client types and use cases:
 ┌─────────────────────▼───────────────────────────────────┐
 │                 Hapi.js Server                          │
 ├─────────────────────────────────────────────────────────┤
-│  MCP Transport      /api/v1/mcp (Protocol Layer)        │
+│  MCP Transport      /mcp/v1/mcp (Protocol Layer)        │
 └─────────────────────────────────────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────────────┐
@@ -38,9 +38,9 @@ We implement the **MCP protocol** to serve modern client types and use cases:
 
 ### Endpoint Structure
 ```
-POST /api/v1/mcp               # Main transport endpoint
-GET  /api/v1/mcp/{sessionId}   # SSE endpoint for streaming
-DELETE /api/v1/mcp/{sessionId} # Session cleanup
+POST /mcp/v1/mcp               # Main transport endpoint
+GET  /mcp/v1/mcp/{sessionId}   # SSE endpoint for streaming
+DELETE /mcp/v1/mcp/{sessionId} # Session cleanup
 ```
 
 ### Request Format (MCP Protocol)
@@ -81,11 +81,11 @@ DELETE /api/v1/mcp/{sessionId} # Session cleanup
 
 ### MCP Transport Handler
 ```javascript
-// /src/api/v1/mcp/endpoints/mcp-transport.js
+// /src/mcp/v1/mcp/endpoints/mcp-transport.js
 export const mcpTransportRoutes = [
   {
     method: 'POST',
-    path: '/api/v1/mcp',
+    path: '/mcp/v1/mcp',
     handler: async (request, h) => {
       const sessionId = request.headers['mcp-session-id'] || 
                        `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`

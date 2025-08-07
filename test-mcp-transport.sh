@@ -3,7 +3,7 @@
 # MCP Transport Test Script
 # Tests the new StreamableHTTPServerTransport implementation
 
-BASE_URL="http://localhost:3000/api/v1/mcp"
+BASE_URL="http://localhost:3000/mcp/v1/mcp"
 HEADERS=(-H "Content-Type: application/json" -H "Accept: application/json, text/event-stream")
 
 echo "=== Testing MCP Transport Implementation ==="

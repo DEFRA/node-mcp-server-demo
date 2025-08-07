@@ -8,7 +8,7 @@ This document provides a detailed technical explanation of the MCP integration i
 
 ### 1. StreamableHTTPServerTransport Integration
 
-**Component**: `/src/api/v1/mcp/endpoints/mcp-transport.js`
+**Component**: `/src/mcp/v1/mcp/endpoints/mcp-transport.js`
 
 **Purpose**: Bridges the gap between the MCP SDK's transport layer and Hapi.js framework
 
@@ -47,7 +47,7 @@ switch (method) {
 
 **Challenge**: MCP SDK requires Zod schemas for tool validation
 
-**Component**: Tool registration in `/src/api/v1/mcp/services/mcp-tools.js`
+**Component**: Tool registration in `/src/mcp/v1/mcp/services/mcp-tools.js`
 
 **Technical Problem**: The MCP SDK validates tool inputs using Zod. Attempting to use JSON Schema format resulted in runtime errors.
 

@@ -49,7 +49,7 @@ Our implementation follows a layered architecture that integrates MCP capabiliti
 
 ## Key Components
 
-### 1. MCP Transport Endpoints (`/src/api/v1/mcp/endpoints/mcp-transport.js`)
+### 1. MCP Transport Endpoints (`/src/mcp/v1/mcp/endpoints/mcp-transport.js`)
 
 This is the core MCP integration point that implements the StreamableHTTPServerTransport from the official MCP SDK. It handles:
 
@@ -64,7 +64,7 @@ This is the core MCP integration point that implements the StreamableHTTPServerT
 - Streaming capabilities via SSE are MCP-specific requirements
 - Security model differs from traditional APIs
 
-### 2. MCP Tools Service (`/src/api/v1/mcp/services/mcp-tools.js`)
+### 2. MCP Tools Service (`/src/mcp/v1/mcp/services/mcp-tools.js`)
 
 Bridges the gap between MCP protocol and our business logic:
 
@@ -213,7 +213,7 @@ allowedOrigins: [
 The current implementation supports the official MCP inspector for development and testing:
 
 1. **Start your server** in development mode
-2. **Run MCP inspector**: Connect to `http://localhost:3000/api/v1/mcp`
+2. **Run MCP inspector**: Connect to `http://localhost:3000/mcp/v1/mcp`
 3. **Test tools**: The inspector can call your MCP tools without Origin header restrictions
 
 This configuration ensures that:

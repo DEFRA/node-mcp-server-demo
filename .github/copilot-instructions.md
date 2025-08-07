@@ -560,9 +560,9 @@ return {
 
 When adding new features:
 1. Create repository in `src/data/mongo/repositories/`
-2. Create service in `src/api/v1/domain/services/`
-3. Create schemas in `src/api/v1/domain/schemas/`
-4. Create endpoints in `src/api/v1/domain/endpoints/`
+2. Create service in `src/mcp/v1/domain/services/`
+3. Create schemas in `src/mcp/v1/domain/schemas/`
+4. Create endpoints in `src/mcp/v1/domain/endpoints/`
 5. Add routes to main router
 6. Create comprehensive tests
 7. Update API documentation

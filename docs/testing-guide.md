@@ -28,7 +28,7 @@ This guide provides comprehensive testing instructions for the MCP transport end
 **Purpose**: Establish a new MCP session and get session ID from response headers
 
 ```bash
-curl -i -X POST http://localhost:3000/api/v1/mcp \
+curl -i -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Host: localhost:3000" \
@@ -63,7 +63,7 @@ data: {...}
 You can extract the session ID from the response headers using grep/awk:
 
 ```bash
-SESSION_ID=$(curl -i -s -X POST http://localhost:3000/api/v1/mcp \
+SESSION_ID=$(curl -i -s -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Host: localhost:3000" \
@@ -87,7 +87,7 @@ echo "Session ID: $SESSION_ID"
 **Purpose**: Get list of all available MCP tools
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SESSION_ID" \
@@ -168,7 +168,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 **Purpose**: Test note creation using MCP protocol
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SESSION_ID" \
@@ -202,7 +202,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 
 **Store Note ID** for subsequent tests:
 ```bash
-NOTE_ID=$(curl -s -X POST http://localhost:3000/api/v1/mcp \
+NOTE_ID=$(curl -s -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Mcp-Session-Id: $SESSION_ID" \
   -d '{
@@ -224,7 +224,7 @@ echo "Created Note ID: $NOTE_ID"
 **Purpose**: Test listing functionality
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SESSION_ID" \
@@ -262,7 +262,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 **Purpose**: Test note retrieval by ID
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SESSION_ID" \
@@ -299,7 +299,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 
 **Invalid Note ID**:
 ```bash
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SESSION_ID" \
@@ -333,7 +333,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 
 **Non-existent Note**:
 ```bash
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SESSION_ID" \
@@ -357,7 +357,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
 **Create Multiple Sessions**:
 # Session 1
 ```bash
-SESSION_1=$(curl -i -s -X POST http://localhost:3000/api/v1/mcp \
+SESSION_1=$(curl -i -s -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Host: localhost:3000" \
@@ -375,7 +375,7 @@ SESSION_1=$(curl -i -s -X POST http://localhost:3000/api/v1/mcp \
 ```
 # Session 2
 ```bash
-SESSION_2=$(curl -i -s -X POST http://localhost:3000/api/v1/mcp \
+SESSION_2=$(curl -i -s -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Host: localhost:3000" \
@@ -398,7 +398,7 @@ echo "Session 2: $SESSION_2"
 **Test Session Isolation**:
 ```bash
 # Both sessions should work independently
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Host: localhost:3000" \
@@ -411,7 +411,7 @@ curl -X POST http://localhost:3000/api/v1/mcp \
     "params": {}
   }' | grep '^data:' | sed 's/^data: //' | jq '.tools | length'
 
-curl -X POST http://localhost:3000/api/v1/mcp \
+curl -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Host: localhost:3000" \
@@ -479,7 +479,7 @@ echo ""
 
 # Initialize MCP session
 echo "🔗 Initializing MCP session..."
-SESSION_ID=$(curl -s -X POST http://localhost:3000/api/v1/mcp \
+SESSION_ID=$(curl -s -X POST http://localhost:3000/mcp/v1/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "method": "initialize",
@@ -501,15 +501,15 @@ echo ""
 echo "🧪 Running MCP Protocol Tests..."
 
 run_test "MCP: List tools" \
-    "curl -s -X POST http://localhost:3000/api/v1/mcp -H 'Content-Type: application/json' -H 'Mcp-Session-Id: $SESSION_ID' -d '{\"method\": \"tools/list\", \"params\": {}}'" \
+    "curl -s -X POST http://localhost:3000/mcp/v1/mcp -H 'Content-Type: application/json' -H 'Mcp-Session-Id: $SESSION_ID' -d '{\"method\": \"tools/list\", \"params\": {}}'" \
     "create_note"
 
 run_test "MCP: Create note" \
-    "curl -s -X POST http://localhost:3000/api/v1/mcp -H 'Content-Type: application/json' -H 'Mcp-Session-Id: $SESSION_ID' -d '{\"method\": \"tools/call\", \"params\": {\"name\": \"create_note\", \"arguments\": {\"title\": \"Test Note\", \"content\": \"Test content\"}}}'" \
+    "curl -s -X POST http://localhost:3000/mcp/v1/mcp -H 'Content-Type: application/json' -H 'Mcp-Session-Id: $SESSION_ID' -d '{\"method\": \"tools/call\", \"params\": {\"name\": \"create_note\", \"arguments\": {\"title\": \"Test Note\", \"content\": \"Test content\"}}}'" \
     "Note created successfully"
 
 run_test "MCP: List notes" \
-    "curl -s -X POST http://localhost:3000/api/v1/mcp -H 'Content-Type: application/json' -H 'Mcp-Session-Id: $SESSION_ID' -d '{\"method\": \"tools/call\", \"params\": {\"name\": \"list_notes\", \"arguments\": {}}}'" \
+    "curl -s -X POST http://localhost:3000/mcp/v1/mcp -H 'Content-Type: application/json' -H 'Mcp-Session-Id: $SESSION_ID' -d '{\"method\": \"tools/call\", \"params\": {\"name\": \"list_notes\", \"arguments\": {}}}'" \
     "Found.*notes"
 
 
@@ -546,7 +546,7 @@ echo "🚀 Starting load test..."
 # Create 10 concurrent sessions
 for i in {1..10}; do
     (
-        SESSION_ID=$(curl -s -X POST http://localhost:3000/api/v1/mcp \
+        SESSION_ID=$(curl -s -X POST http://localhost:3000/mcp/v1/mcp \
           -H "Content-Type: application/json" \
           -H "Accept: application/json, text/event-stream" \
           -d '{
@@ -562,7 +562,7 @@ for i in {1..10}; do
         
         # Create 5 notes per session
         for j in {1..5}; do
-            curl -s -X POST http://localhost:3000/api/v1/mcp \
+            curl -s -X POST http://localhost:3000/mcp/v1/mcp \
               -H "Content-Type: application/json" \
               -H "Mcp-Session-Id: $SESSION_ID" \
               -d '{
