@@ -17,11 +17,19 @@ function createDomainError (message, statusCode = 400, name = 'DomainError') {
 
 // Factory functions (preferred approach going forward)
 function createNoteNotFoundError (noteId) {
-  return NoteNotFoundError(noteId)
+  return createDomainError(
+    `Note with ID '${noteId}' not found`,
+    404,
+    'NoteNotFoundError'
+  )
 }
 
 function createInvalidNoteDataError (message) {
-  return InvalidNoteDataError(message)
+  return createDomainError(
+    `Invalid note data: ${message}`,
+    400,
+    'InvalidNoteDataError'
+  )
 }
 
 function createFileOperationError (operation, filename, originalError) {
@@ -35,7 +43,11 @@ function createFileOperationError (operation, filename, originalError) {
 }
 
 function createMcpProtocolError (message) {
-  return McpProtocolError(message)
+  return createDomainError(
+    `MCP protocol error: ${message}`,
+    400,
+    'McpProtocolError'
+  )
 }
 
 export {

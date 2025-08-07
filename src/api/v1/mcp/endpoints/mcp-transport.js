@@ -222,12 +222,6 @@ const mcpTransportRoutes = [
       payload: {
         parse: true,
         allow: 'application/json'
-      },
-      cors: {
-        origin: ['*'],
-        exposedHeaders: ['Mcp-Session-Id'],
-        additionalHeaders: ['Content-Type', 'mcp-session-id'],
-        credentials: true
       }
     }
   },
@@ -239,12 +233,6 @@ const mcpTransportRoutes = [
       description: 'Handle MCP transport requests (GET)',
       notes: 'Handles server-to-client notifications via SSE',
       tags: ['api', 'mcp', 'transport', 'sse'],
-      cors: {
-        origin: ['*'],
-        exposedHeaders: ['Mcp-Session-Id'],
-        additionalHeaders: ['Content-Type', 'mcp-session-id'],
-        credentials: true
-      }
     }
   },
   {
@@ -254,13 +242,7 @@ const mcpTransportRoutes = [
     options: {
       description: 'Handle MCP transport requests (DELETE)',
       notes: 'Handles MCP session termination',
-      tags: ['api', 'mcp', 'transport', 'session'],
-      cors: {
-        origin: ['*'],
-        exposedHeaders: ['Mcp-Session-Id'],
-        additionalHeaders: ['Content-Type', 'mcp-session-id'],
-        credentials: true
-      }
+      tags: ['api', 'mcp', 'transport', 'session']
     }
   }
 ]
