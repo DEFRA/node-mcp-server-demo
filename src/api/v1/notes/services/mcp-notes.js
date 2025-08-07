@@ -65,46 +65,42 @@ function createMcpNoteService (mcpNoteRepository) {
 
   async function getAllNotes () {
     try {
-      logger.debug( 'Retrieving all MCP notes')
+      logger.debug('Retrieving all MCP notes')
       const notes = await mcpNoteRepository.getAllNotes()
 
-      logger.info( 'MCP notes retrieved successfully: ', { count: notes.length})
+      logger.info('MCP notes retrieved successfully: ', { count: notes.length })
 
       // format each note as {details: note }
       const formattedNotes = []
-      for (const note of notes ){
-        formattedNotes.push({ details: note})
+      for (const note of notes) {
+        formattedNotes.push({ details: note })
       }
 
       return formattedNotes
-
     } catch (error) {
       logger.error('Error retrieveing all MCP notes: ', error)
       throw error
     }
   }
 
-  async function deleteByNoteId (noteId){
+  async function deleteByNoteId (noteId) {
     try {
       logger.debug('Deleting MCP note by ID:', { noteId })
 
       const note = await mcpNoteRepository.findByNoteId(noteId)
 
-       if (!note) {
-        throw createNoteNotFoundError (`Note with note id ${noteId} does not exist `)
+      if (!note) {
+        throw createNoteNotFoundError(`Note with note id ${noteId} does not exist `)
       }
 
       await mcpNoteRepository.deleteByNoteId(noteId)
 
       logger.info('MCP note deleted successfully:', { noteId: note.noteId, title: note.title })
-
-
-
+      return {details: note}
     } catch (error) {
       logger.error('Error retrieving MCP note by ID:', error)
       throw error
     }
-
   }
 
   return {

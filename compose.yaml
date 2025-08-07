@@ -25,7 +25,6 @@ services:
       NODE_ENV: development
       MONGO_URI: mongodb://mongodb:27017/
       MCP_ENABLED: true
-      MCP_NOTES_DIR: /home/node/data/notes
     networks:
       - note-hapi-mcp
 

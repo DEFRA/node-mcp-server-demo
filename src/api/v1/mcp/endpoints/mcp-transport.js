@@ -130,7 +130,7 @@ async function handleMcpTransport (request, h) {
       })
 
       // Register our tools with the MCP server
-      await registerMcpTools(mcpServer, request.server.app.noteService, request.server.app.mcpNoteService)
+      await registerMcpTools(mcpServer, request.server.app.mcpNoteService)
 
       // Connect to the MCP server
       await mcpServer.connect(transport)
