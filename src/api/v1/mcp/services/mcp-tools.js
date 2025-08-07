@@ -224,6 +224,91 @@ ${result.details.content}`
     }
   })
 
+
+// List MCP Notes
+mcpServer.registerTool('list_mcp_notes', {
+  description: 'List all available MCP notes with their metadata'
+},
+  async function listMcpNotesHandler (params) {
+    logger.debug('Executing list_mcp_notes tool', { params })
+
+    try {
+      const notes = await mcpNoteService.getAllNotes()
+
+      if (notes.length === 0) {
+        return {
+          content: [{
+            type: 'text',
+            text: '📝 **No MCP notes found**\n\nUse the create_mcp_note tool to create your first note.'
+          }]
+        }
+      }
+
+      const notesList = notes.map(function (noteWrapper) {
+        return `- **${noteWrapper.details.title}** (Note ID: ${noteWrapper.details.noteId}) - Created: ${noteWrapper.details.createdAt}`
+      }).join('\n')
+
+      return {
+        content: [{
+          type: 'text',
+          text: `📝 **Available MCP Notes** (${notes.length} total)\n\n${notesList}\n\nUse the get_mcp_note tool with a specific Note ID to retrieve a note's content.`
+        }]
+      }
+    } catch (error) {
+      logger.error('Error in list_mcp_notes tool:', error)
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ Failed to list MCP notes: ${error.message}`
+        }],
+        isError: true
+      }
+    }
+  }
+)
+
+  // Delete MCP Note by ID
+  mcpServer.registerTool('delete_mcp_note', {
+    description: 'Delete an MCP note by its unique noteId',
+    inputSchema: {
+      noteId: z.string().uuid()
+    }
+  }, async function (params) {
+    logger.debug('Executing delete_mcp_note tool', { params })
+
+    try {
+      const { noteId } = params
+      const result = await mcpNoteService.deleteNoteById(noteId)
+
+      if (!result) {
+        return {
+          content: [{
+            type: 'text',
+            text: `❌ Note not found with ID: ${noteId}`
+          }]
+        }
+      }
+
+      return {
+        content: [{
+          type: 'text',
+          text: `🗑️ **MCP Note Deleted**
+
+**Note ID:** ${noteId}`
+        }]
+      }
+    } catch (error) {
+      logger.error('Error in delete_mcp_note tool:', error)
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ Failed to delete note: ${error.message}`
+        }],
+        isError: true
+      }
+    }
+  })
+
   logger.info('Successfully registered all MCP tools with SDK server')
 }
 
