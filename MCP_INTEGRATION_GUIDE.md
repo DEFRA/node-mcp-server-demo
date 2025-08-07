@@ -21,7 +21,7 @@ The Model Context Protocol (MCP) enables AI assistants to securely connect to lo
 - **Backend**: Node.js with Hapi.js framework
 - **MCP Server**: Direct JSON-RPC implementation (following enterprise patterns)
 - **Storage**: File-based repository pattern with service layer
-- **Protocol**: JSON-RPC over HTTP at `/mcp/v1/mcp`
+- **Protocol**: JSON-RPC over HTTP at `/mcp`
 - **Architecture**: Repository Pattern, Service Layer, Domain-Driven Design
 
 ## Understanding JSON-RPC and MCP
@@ -277,7 +277,7 @@ Parse error: Invalid literal value, expected "2.0"
 # This request/response cycle proves full compliance:
 
 # Request (standard MCP initialize)
-curl -X POST http://localhost:3000/mcp/v1/mcp \
+curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0"}}}'
 
@@ -316,7 +316,7 @@ curl -X POST http://localhost:3000/mcp/v1/mcp \
 For reference, here's how you **could** integrate `StreamableHTTPServerTransport` with Hapi.js:
 
 ```javascript
-// src/mcp/v1/mcp/endpoints/mcp-transport.js
+// src/mcp/endpoints/mcp-transport.js
 import { randomUUID } from 'node:crypto'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
@@ -377,7 +377,7 @@ import { createMcpProtocolError } from '../../../../common/errors/domain-errors.
 const mcpTransportRoutes = [
   {
     method: 'POST',
-    path: '/mcp/v1/mcp',
+    path: '/mcp',
     handler: handleMcpTransport,
     options: {
       payload: { parse: true }
@@ -385,12 +385,12 @@ const mcpTransportRoutes = [
   },
   {
     method: 'GET',
-    path: '/mcp/v1/mcp',
+    path: '/mcp',
     handler: handleMcpTransport
   },
   {
     method: 'DELETE',
-    path: '/mcp/v1/mcp',
+    path: '/mcp',
     handler: handleMcpTransport
   }
 ]
@@ -417,7 +417,7 @@ export { mcpTransportRoutes }
 // Clean integration with Hapi's ecosystem following enterprise patterns
 {
   method: 'POST',
-  path: '/mcp/v1/mcp',
+  path: '/mcp',
   handler: handleMcpRequest,
   options: {
     description: 'Handle MCP JSON-RPC requests',
@@ -557,7 +557,7 @@ architecture-beta
 ```
 
 **Flow Description:**
-1. **MCP Client** sends JSON-RPC requests over HTTP POST to `/mcp/v1/mcp`
+1. **MCP Client** sends JSON-RPC requests over HTTP POST to `/mcp`
 2. **Hapi Server** routes requests to MCP endpoints with built-in middleware
 3. **MCP Endpoints** handle HTTP-to-JSON-RPC conversion and route method calls
 4. **Joi Validation** validates request structure and parameters
@@ -567,13 +567,13 @@ architecture-beta
 8. **File Manager** handles file I/O operations with the file system
 
 **Refactored Architecture Layers:**
-- **Endpoints**: `/mcp/v1/mcp/endpoints/mcp.js` - HTTP route handlers with Boom error handling
-- **Services**: `/mcp/v1/mcp/services/mcp.js` - Business logic for MCP operations
+- **Endpoints**: `/mcp/endpoints/mcp.js` - HTTP route handlers with Boom error handling
+- **Services**: `/mcp/services/mcp.js` - Business logic for MCP operations
 - **Note Services**: `/mcp/v1/notes/services/note.js` - Note-specific business logic
 - **Repository**: `/src/data/repositories/note.js` - Data access layer with FileManager
 - **Models**: `/src/data/models/note.js` - Domain models with validation
 - **Utilities**: `/src/data/utils/note-parser.js` - File parsing without static methods
-- **Schemas**: `/mcp/v1/mcp/schemas/mcp.js` - Joi validation schemas
+- **Schemas**: `/mcp/schemas/mcp.js` - Joi validation schemas
 - **Errors**: `/src/common/errors/domain-errors.js` - Domain-specific error classes
 
 ## Implementation Details
@@ -581,13 +581,13 @@ architecture-beta
 ### 1. Route Structure
 
 ```javascript
-// src/mcp/v1/mcp/endpoints/mcp.js
+// src/mcp/endpoints/mcp.js
 import Boom from '@hapi/boom'
 import { McpService } from '../services/mcp.js'
 import { mcpRequestSchema } from '../schemas/mcp.js'
 
 /**
- * Handler for POST /mcp/v1/mcp
+ * Handler for POST /mcp
  * Handle MCP JSON-RPC requests
  */
 async function handleMcpRequest(request, h) {
@@ -622,7 +622,7 @@ async function handleMcpRequest(request, h) {
 const mcpRoutes = [
   {
     method: 'POST',
-    path: '/mcp/v1/mcp',
+    path: '/mcp',
     handler: handleMcpRequest,
     options: {
       description: 'Handle MCP JSON-RPC requests',
@@ -642,7 +642,7 @@ export { mcpRoutes }
 
 #### MCP Service Implementation
 ```javascript
-// src/mcp/v1/mcp/services/mcp.js
+// src/mcp/services/mcp.js
 import { McpProtocolError } from '../../../../common/errors/domain-errors.js'
 
 class McpService {
@@ -901,27 +901,27 @@ function createNoteFromDocument(content, filename) {
 
 ```bash
 # Initialize MCP connection
-curl -X POST http://localhost:3000/mcp/v1/mcp \
+curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test-client", "version": "1.0.0"}}}'
 
 # List available tools
-curl -X POST http://localhost:3000/mcp/v1/mcp \
+curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/list"}'
 
 # Create a note
-curl -X POST http://localhost:3000/mcp/v1/mcp \
+curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "create_note", "arguments": {"title": "Test Note", "content": "Hello World!"}}}'
 
 # Get a specific note
-curl -X POST http://localhost:3000/mcp/v1/mcp \
+curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "get_note", "arguments": {"noteId": "note_1754048150071_h5rxn2njn"}}}'
 
 # List all notes
-curl -X POST http://localhost:3000/mcp/v1/mcp \
+curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "list_notes", "arguments": {}}}'
 ```

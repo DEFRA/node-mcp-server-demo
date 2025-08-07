@@ -87,7 +87,7 @@ This directory contains comprehensive documentation for the MCP-enabled Node.js 
 - Server-Sent Events for real-time updates
 
 ### MCP-Only Protocol Support
-- **MCP Endpoints**: `/mcp/v1/mcp` (transport layer)
+- **MCP Endpoints**: `/mcp` (transport layer)
 - Shared business logic and data layer
 - Protocol-specific validation (Zod)
 
@@ -106,7 +106,7 @@ This directory contains comprehensive documentation for the MCP-enabled Node.js 
 
 2. **Test MCP Protocol**:
    ```bash
-   curl -X POST http://localhost:3000/mcp/v1/mcp \
+   curl -X POST http://localhost:3000/mcp \
      -H "Content-Type: application/json" \
      -d '{"method": "initialize", "params": {...}}'
    ```
@@ -114,9 +114,9 @@ This directory contains comprehensive documentation for the MCP-enabled Node.js 
 ## API Endpoints Summary
 
 ### MCP Transport
-- `POST /mcp/v1/mcp` - Main MCP protocol endpoint
-- `GET /mcp/v1/mcp/{sessionId}` - SSE streaming
-- `DELETE /mcp/v1/mcp/{sessionId}` - Session cleanup
+- `POST /mcp` - Main MCP protocol endpoint
+- `GET /mcp/{sessionId}` - SSE streaming
+- `DELETE /mcp/{sessionId}` - Session cleanup
 
 ### Health & Monitoring
 - `GET /health` - Health check endpoint

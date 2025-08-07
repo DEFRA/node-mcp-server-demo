@@ -32,11 +32,11 @@ const mcpTransportPlugin = {
       // Store services in server app context for use in transport handlers
       server.app.mcpNoteService = mcpNoteService
 
-      // Register MCP transport routes (replaces existing /mcp/v1/mcp endpoint)
+      // Register MCP transport routes (replaces existing /mcp endpoint)
       server.route(mcpTransportRoutes)
 
       logger.info('MCP Transport server plugin registered successfully')
-      logger.info('MCP SDK transport endpoints available at: /mcp/v1/mcp')
+      logger.info('MCP SDK transport endpoints available at: /mcp')
       logger.info('Protocol: StreamableHTTPServerTransport with session management')
     } catch (error) {
       logger.error('Error registering MCP Transport server plugin:', error)

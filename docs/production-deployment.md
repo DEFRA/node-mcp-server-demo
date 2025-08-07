@@ -233,7 +233,7 @@ server {
     ssl_certificate_key /path/to/private.key;
     
     # MCP Transport endpoints need sticky sessions
-    location /mcp/v1/mcp {
+    location /mcp {
         proxy_pass http://mcp_backend;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -495,14 +495,14 @@ const mongoOptions = {
 
 ```bash
 # Test that development origins are blocked
-curl -X POST https://your-domain.com/mcp/v1/mcp \
+curl -X POST https://your-domain.com/mcp \
   -H "Origin: http://localhost:3000" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"initialize","id":1}'
 # Should return 403 Forbidden in production
 
 # Test that null origins are blocked  
-curl -X POST https://your-domain.com/mcp/v1/mcp \
+curl -X POST https://your-domain.com/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"initialize","id":1}'
 # Should return 403 Forbidden in production

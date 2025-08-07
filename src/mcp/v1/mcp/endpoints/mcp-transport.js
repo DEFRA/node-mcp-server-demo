@@ -213,7 +213,7 @@ async function handleMcpGet (request, h) {
 const mcpTransportRoutes = [
   {
     method: 'POST',
-    path: '/mcp/v1/mcp',
+    path: '/mcp',
     handler: handleMcpTransport,
     options: {
       description: 'Handle MCP transport requests (POST)',
@@ -227,7 +227,7 @@ const mcpTransportRoutes = [
   },
   {
     method: 'GET',
-    path: '/mcp/v1/mcp',
+    path: '/mcp',
     handler: handleMcpGet,
     options: {
       description: 'Handle MCP transport requests (GET)',
@@ -237,7 +237,7 @@ const mcpTransportRoutes = [
   },
   {
     method: 'DELETE',
-    path: '/mcp/v1/mcp',
+    path: '/mcp',
     handler: handleMcpDelete,
     options: {
       description: 'Handle MCP transport requests (DELETE)',
