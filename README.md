@@ -92,63 +92,78 @@ curl -X POST http://localhost:3000/mcp \
 ```bash
 curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Mcp-Session-Id: $SESSION_ID" \
+  -H "Host: localhost:3000" \
+  -H "Origin: http://localhost:3000" \
   -d '{
     "jsonrpc": "2.0",
     "id": 2,
     "method": "tools/list",
     "params": {}
-  }'
+  }' | grep '^data:' | sed 's/^data: //' | jq '.'
 ```
 
 #### Create a Note
 ```bash
 curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Mcp-Session-Id: $SESSION_ID" \
+  -H "Host: localhost:3000" \
+  -H "Origin: http://localhost:3000" \
   -d '{
     "jsonrpc": "2.0",
     "id": 3,
     "method": "tools/call",
     "params": {
-      "name": "create_note",
+      "name": "create_mcp_note",
       "arguments": {
-        "title": "My Test Note",
-        "content": "This is a test note created via curl"
+        "title": "Test Note via MCP",
+        "content": "This note was created using the MCP protocol for testing purposes."
       }
     }
-  }'
+  }' | grep '^data:' | sed 's/^data: //' | jq '.'
 ```
 
 #### List All Notes
 ```bash
 curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Mcp-Session-Id: $SESSION_ID" \
+  -H "Host: localhost:3000" \
+  -H "Origin: http://localhost:3000" \
   -d '{
     "jsonrpc": "2.0",
     "id": 4,
     "method": "tools/call",
     "params": {
-      "name": "list_notes",
+      "name": "list_mcp_notes",
       "arguments": {}
     }
-  }'
+  }' | grep '^data:' | sed 's/^data: //' | jq '.'
 ```
 
 #### Get a Specific Note
 ```bash
-# Replace "your_note_id" with an actual note ID from list_notes
 curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 5,
-    "method": "tools/call",
-    "params": {
-      "name": "get_note",
-      "arguments": {
-        "noteId": "your_note_id"
+  -H "Accept: application/json, text/event-stream" \
+  -H "Mcp-Session-Id: $SESSION_ID" \
+  -H "Host: localhost:3000" \
+  -H "Origin: http://localhost:3000" \
+  -d "{
+    \"jsonrpc\": \"2.0\",
+    \"id\": 5,
+    \"method\": \"tools/call\",
+    \"params\": {
+      \"name\": \"get_mcp_note\",
+      \"arguments\": {
+        \"noteId\": \"$NOTE_ID\"
       }
     }
-  }'
+  }" | grep '^data:' | sed 's/^data: //' | jq '.'
 ```
 
 ## MCP Integration
@@ -175,47 +190,42 @@ For a detailed visual representation of the architecture, see the [MCP Integrati
 
 ```
 src/
+├── common/
+│   ├── errors/
+│   │   └── domain-errors.js    # Domain error factory functions
+│   ├── logging/                # Logger utilities
+│   │   ├── logger-options.js   # Logger configuration options
+│   │   ├── logger.js           # Logger implementation
+│   │   └── metrics.js          # Metrics logging
+│   ├── proxy/                  # Proxy utilities
+│   │   └── setup-proxy.js      # Proxy setup functions
+│   └── secure-context/         # Security configurations
+│       └── secure-context.js   # Secure context setup
+├── config/                     # Application configuration
+│   └── server.js               # Server configuration
+├── constants/                  # Application constants
+├── data/
+│   ├── models/
+│   │   └── mcp-notes.js        # MCP Notes model factory functions
+│   ├── repositories/
+│   │   └── mcp-notes.js        # File-based MCP Notes repository factory functions
 ├── mcp/
-│   ├── plugins/
-│   │   └── mcp-transport.js    # MCP transport plugin with StreamableHTTPServerTransport
+│   ├── plugins/                # Hapi plugins
+│   │   ├── mcp-transport.js    # MCP transport plugin
+│   │   ├── pulse.js            # Pulse plugin for health checks
+│   │   └── request-logger.js   # Request logging plugin
+│   ├── probes/                 # Health check endpoints
+│   │   └── health/             # Health probe router
 │   ├── server.js               # Hapi server configuration
-│   └── v1/
-│       ├── common/
-│       │   └── schemas/        # Common validation schemas
+│   └── v1/                     # API version 1
 │       ├── mcp/
 │       │   ├── endpoints/
 │       │   │   └── mcp-transport.js  # MCP transport endpoint handlers
 │       │   ├── services/
 │       │   │   └── mcp-tools.js      # MCP tools registration and logic
-│       │   └── schemas/        # MCP validation schemas
 │       └── notes/
 │           └── services/
-│               └── note.js     # Note service factory functions
-├── common/
-│   ├── errors/
-│   │   └── domain-errors.js    # Domain error factory functions
-│   ├── filesystem/
-│   │   └── file-manager.js     # File manager factory functions
-│   └── logging/                # Logger utilities
-├── data/
-│   ├── models/
-│   │   └── note.js             # Note model factory functions
-│   ├── repositories/
-│   │   └── note.js             # File-based note repository factory functions
-│   └── utils/
-│       └── note-parser.js      # File parsing utility functions
-```
-
-### File Storage Format
-
-Notes are stored in the `data/notes/` directory with the following format:
-
-```
-ID: note_<timestamp>_<randomId>
-TITLE: <note_title>
-CREATED: <iso_timestamp>
----
-<note_content>
+│               └── mcp-notes.js     # Note service factory functions
 ```
 
 ### Implementation Details
@@ -227,18 +237,15 @@ This implementation demonstrates:
 3. **Factory Function Patterns**: All object creation through factory functions (createNoteService, createFileNoteRepository, etc.)
 4. **Layered Architecture**: Clear separation between endpoints, services, repositories, and data models
 5. **Domain Error Handling**: Factory-based error creation with proper HTTP status codes using Boom
-6. **Validation**: Comprehensive Joi schemas for request validation
 7. **Tool Registration**: Three MCP tools with proper schemas and business logic separation
 8. **File-based Storage**: Repository pattern implementation with file-based note storage
 
 ### Architecture Layers
 
 - **Endpoints** (`/mcp/endpoints/`): HTTP route handlers with Boom error handling using MCP SDK transport
-- **Services** (`/mcp/services/` & `/mcp/v1/notes/services/`): Business logic layer with factory functions
+- **Services** (`/mcp/v1/notes/services/`): Business logic layer with factory functions
 - **Repository** (`/src/data/repositories/`): Data access layer with Repository Pattern using factory functions
 - **Models** (`/src/data/models/`): Domain models with validation using factory functions
-- **Utilities** (`/src/data/utils/`): File parsing and helper utility functions
-- **Schemas** (`/mcp/schemas/`): Joi validation schemas
 - **Errors** (`/src/common/errors/`): Domain-specific error factory functions
 
 ## Requirements

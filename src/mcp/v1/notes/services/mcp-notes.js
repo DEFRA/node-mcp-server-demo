@@ -1,4 +1,4 @@
-import { createInvalidNoteDataError, createNoteNotFoundError } from '../../../../common/errors/domain-errors.js'
+import { createDomainError } from '../../../../common/errors/domain-errors.js'
 import { createLogger } from '../../../../common/logging/logger.js'
 
 /**
@@ -16,7 +16,7 @@ function createMcpNoteService (mcpNoteRepository) {
    * @param {string} noteData.title - The note title
    * @param {string} noteData.content - The note content
    * @returns {Promise<Object>} The created note
-   * @throws {InvalidNoteDataError} When note data is invalid
+   * @throws {Error} When note data is invalid
    */
 
   async function createNote (noteData) {
@@ -24,7 +24,7 @@ function createMcpNoteService (mcpNoteRepository) {
       logger.debug('Creating new MCP note:', { title: noteData.title })
 
       if (!noteData.title || !noteData.content) {
-        throw createInvalidNoteDataError('Title and content are required')
+        throw createDomainError('Title and content are required', 400, 'InvalidNoteDataError')
       }
 
       const note = await mcpNoteRepository.createNote(noteData)
@@ -46,13 +46,13 @@ function createMcpNoteService (mcpNoteRepository) {
       logger.debug('Retrieving MCP note by ID:', { noteId })
 
       if (!noteId) {
-        throw createInvalidNoteDataError('Note ID is required')
+        throw createDomainError('Note ID is required', 400, 'InvalidNoteDataError')
       }
 
       const note = await mcpNoteRepository.findByNoteId(noteId)
 
       if (!note) {
-        throw createNoteNotFoundError(`MCP note with ID ${noteId} not found`)
+        throw createDomainError(`MCP note with ID ${noteId} not found`, 404, 'NoteNotFoundError')
       }
 
       logger.info('MCP note retrieved successfully:', { noteId: note.noteId, title: note.title })
@@ -90,7 +90,7 @@ function createMcpNoteService (mcpNoteRepository) {
       const note = await mcpNoteRepository.findByNoteId(noteId)
 
       if (!note) {
-        throw createNoteNotFoundError(`Note with note id ${noteId} does not exist `)
+        throw createDomainError(`Note with note id ${noteId} does not exist`, 404, 'NoteNotFoundError')
       }
 
       await mcpNoteRepository.deleteByNoteId(noteId)
