@@ -8,7 +8,6 @@ import { MongoClient } from 'mongodb'
 /**
  * MCP Transport Server Hapi Plugin
  * Provides Model Context Protocol server functionality using StreamableHTTPServerTransport
- * This replaces the direct JSON-RPC implementation with the official MCP SDK transport
  */
 const mcpTransportPlugin = {
   name: 'mcp-transport-server',

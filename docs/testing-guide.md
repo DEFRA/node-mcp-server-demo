@@ -126,8 +126,7 @@ curl -X POST http://localhost:3000/mcp \
             "title",
             "content"
           ],
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "additionalProperties": false
         }
       },
       {
@@ -144,8 +143,7 @@ curl -X POST http://localhost:3000/mcp \
           "required": [
             "noteId"
           ],
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "additionalProperties": false
         }
       },
       {
@@ -179,7 +177,7 @@ curl -X POST http://localhost:3000/mcp \
     "id": 3,
     "method": "tools/call",
     "params": {
-      "name": "create_note",
+      "name": "create_mcp_note",
       "arguments": {
         "title": "Test Note via MCP",
         "content": "This note was created using the MCP protocol for testing purposes."
@@ -194,7 +192,7 @@ curl -X POST http://localhost:3000/mcp \
   "content": [
     {
       "type": "text",
-      "text": "Note created successfully with ID: note_1754321234567_xyz789abc"
+      "text": "✅ **MCP Note created successfully!**\n\n**Title:** Test Note via MCP\n**Note ID:** note_1754321234567_xyz789abc\n**Created:** 2025-08-08T12:00:00.000Z"
     }
   ]
 }
@@ -202,19 +200,24 @@ curl -X POST http://localhost:3000/mcp \
 
 **Store Note ID** for subsequent tests:
 ```bash
-NOTE_ID=$(curl -s -X POST http://localhost:3000/mcp \
+NOTE_ID=$(curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SESSION_ID" \
+  -H "Host: localhost:3000" \
+  -H "Origin: http://localhost:3000" \
   -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
     "method": "tools/call",
     "params": {
-      "name": "create_note",
+      "name": "create_mcp_note",
       "arguments": {
-        "title": "Sample Note",
+        "title": "Test Note via MCP store ID",
         "content": "Sample content for testing"
       }
     }
-  }' | jq -r '.result.content[0].text' | grep -Eo 'ID: note_[0-9]+_[a-z0-9]+' | grep -Eo 'note_[0-9]+_[a-z0-9]+')
+  }' | jq -r '.result.content[0].text' | grep -Eo 'Note ID: [a-f0-9-]+' | grep -Eo '[a-f0-9-]+')
 
 echo "Created Note ID: $NOTE_ID"
 ```
@@ -235,7 +238,7 @@ curl -X POST http://localhost:3000/mcp \
     "id": 4,
     "method": "tools/call",
     "params": {
-      "name": "list_notes",
+      "name": "list_mcp_notes",
       "arguments": {}
     }
   }' | grep '^data:' | sed 's/^data: //' | jq '.'
@@ -273,7 +276,7 @@ curl -X POST http://localhost:3000/mcp \
     \"id\": 5,
     \"method\": \"tools/call\",
     \"params\": {
-      \"name\": \"get_note\",
+      \"name\": \"get_mcp_note\",
       \"arguments\": {
         \"noteId\": \"$NOTE_ID\"
       }
@@ -310,7 +313,7 @@ curl -X POST http://localhost:3000/mcp \
     "id": 6,
     "method": "tools/call",
     "params": {
-      "name": "get_note",
+      "name": "get_mcp_note",
       "arguments": {
         "noteId": "invalid_note_id"
       }
@@ -344,7 +347,7 @@ curl -X POST http://localhost:3000/mcp \
     "id": 7,
     "method": "tools/call",
     "params": {
-      "name": "get_note",
+      "name": "get_mcp_note",
       "arguments": {
         "noteId": "note_9999999999999_nonexistent"
       }

@@ -24,199 +24,64 @@ The Model Context Protocol (MCP) enables AI assistants to securely connect to lo
 - **Protocol**: JSON-RPC over HTTP at `/mcp`
 - **Architecture**: Repository Pattern, Service Layer, Domain-Driven Design
 
-## Understanding JSON-RPC and MCP
+## Understanding the MCP Protocol
 
-### What is JSON-RPC?
+The Model Context Protocol (MCP) is a standardized way to connect AI applications with external data sources and tools. It is built on JSON-RPC 2.0, enabling seamless communication between clients and servers.
 
-**JSON-RPC** is a remote procedure call (RPC) protocol encoded in JSON. It's a stateless, lightweight protocol that defines how to structure requests and responses for calling methods on remote servers.
+### Key Features of MCP
 
-#### JSON-RPC 2.0 Structure
+1. **Resources**: Provide data to AI models, similar to GET endpoints in REST APIs.
+2. **Tools**: Execute actions or computations, akin to POST endpoints.
+3. **Prompts**: Define reusable templates for AI interactions.
+4. **Sampling**: Allow servers to request LLM completions.
+5. **Elicitation**: Enable servers to request additional user input.
 
-**Request Format:**
+### JSON-RPC Foundation
+
+MCP uses JSON-RPC 2.0 for its message structure, ensuring a lightweight and stateless communication protocol.
+
+#### Example JSON-RPC Request
 ```json
 {
-  "jsonrpc": "2.0",          // Protocol version (required)
-  "method": "method_name",    // Method to call (required)
-  "params": { ... },          // Method parameters (optional)
-  "id": 1                     // Request identifier (required for requests expecting response)
+  "jsonrpc": "2.0",
+  "method": "initialize",
+  "params": { "protocolVersion": "2025-06-18" },
+  "id": 1
 }
 ```
 
-**Success Response:**
+#### Example JSON-RPC Response
 ```json
 {
-  "jsonrpc": "2.0",          // Protocol version (required)
-  "result": { ... },          // Method result (required on success)
-  "id": 1                     // Matches request ID (required)
-}
-```
-
-**Error Response:**
-```json
-{
-  "jsonrpc": "2.0",          // Protocol version (required)
-  "error": {                  // Error object (required on error)
-    "code": -32602,           // Error code (integer)
-    "message": "Invalid params" // Error message (string)
+  "jsonrpc": "2.0",
+  "result": {
+    "protocolVersion": "2025-06-18",
+    "capabilities": { "tools": {}, "resources": {}, "prompts": {} }
   },
-  "id": 1                     // Matches request ID (required)
+  "id": 1
 }
 ```
 
-Errors**: `/src/common/errors/domain-errors.js` - Domain-specific error factory functions
+### Security and Trust
 
-### Why MCP Uses JSON-RPC
+MCP emphasizes user consent, data privacy, and tool safety. Implementers must ensure robust security measures and clear user authorization flows.
 
-The **Model Context Protocol** is built on top of JSON-RPC because:
+### Learn More
 
-1. **Standardized Structure**: JSON-RPC provides a well-defined, language-agnostic way to call remote methods
-2. **Bi-directional Communication**: Both client and server can initiate calls
-3. **Error Handling**: Built-in error code system for consistent error reporting
-4. **Transport Agnostic**: Works over HTTP, WebSockets, stdio, etc.
-5. **Simple but Powerful**: Easy to implement while supporting complex interactions
+For detailed specifications and examples, visit:
 
-#### MCP-Specific JSON-RPC Methods
+- [MCP Official Website](https://modelcontextprotocol.io)
+- [MCP Specification (2025-06-18)](https://modelcontextprotocol.io/specification/2025-06-18)
+- [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk?tab=readme-ov-file#streamable-http)
 
-MCP defines specific methods that servers must implement:
+## The Challenge
 
-```javascript
-// Initialize connection
-{"jsonrpc": "2.0", "method": "initialize", "params": {...}}
+Integrating MCP with Hapi.js presented unique challenges due to the need for:
 
-// List available tools
-{"jsonrpc": "2.0", "method": "tools/list", "params": {}}
-
-// Call a specific tool
-{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "create_note", "arguments": {...}}}
-
-// List resources
-{"jsonrpc": "2.0", "method": "resources/list", "params": {}}
-
-// List prompts
-{"jsonrpc": "2.0", "method": "prompts/list", "params": {}}
-```
-
-### MCP Protocol Compliance
-
-**✅ Our implementation is fully MCP compliant** because we:
-
-1. **Implement Required Methods**: `initialize`, `tools/list`, `tools/call`
-2. **Follow JSON-RPC 2.0 Spec**: Proper request/response structure
-3. **Return Correct Capabilities**: Server capabilities in `initialize` response
-4. **Use Standard Error Codes**: JSON-RPC error codes (-32600, -32602, etc.)
-5. **Follow Tool Schema**: Proper tool definitions with input schemas
-6. **Handle Notifications**: Support for `notifications/initialized`
-
-**According to the [MCP Specification](https://github.com/modelcontextprotocol/typescript-sdk):**
-- MCP is a **protocol** built on JSON-RPC 2.0
-- Servers can implement the protocol in any way that follows the spec
-- Transport layer is **separate** from protocol compliance
-
-## Why We Chose Direct JSON-RPC Implementation
-
-### The Transport Integration Challenge
-
-The MCP SDK provides `StreamableHTTPServerTransport` which **can work with web frameworks** like Express and Hapi.js. Looking at the [Express example](https://github.com/modelcontextprotocol/typescript-sdk?tab=readme-ov-file#streamable-http), it shows proper integration using session management.
-
-#### ✅ Correct StreamableHTTPServerTransport Integration (Express Example)
-```javascript
-import express from "express";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-
-const app = express();
-app.use(express.json());
-
-const transports = {};
-
-app.post('/mcp', async (req, res) => {
-  const sessionId = req.headers['mcp-session-id'];
-  let transport;
-
-  if (sessionId && transports[sessionId]) {
-    transport = transports[sessionId];
-  } else if (!sessionId && isInitializeRequest(req.body)) {
-    transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-      onsessioninitialized: (sessionId) => {
-        transports[sessionId] = transport;
-      }
-    });
-
-    const server = new McpServer({ name: "example", version: "1.0.0" });
-    await server.connect(transport);
-  }
-
-  await transport.handleRequest(req, res, req.body);
-});
-```
-
-### Why We Chose Direct Implementation Instead
-
-While `StreamableHTTPServerTransport` **can** work with Hapi.js, we chose direct JSON-RPC implementation for several enterprise-focused reasons:
-
-#### ✅ Advantages of Direct Implementation for Enterprise Projects
-
-**1. Framework Integration & Consistency**
-- ✅ **Follows existing Hapi.js patterns**: Uses standard route handlers, middleware, validation
-- ✅ **Leverages enterprise architecture**: Repository Pattern, Service Layer, Domain-Driven Design
-- ✅ **Consistent error handling**: Uses Boom and domain-specific error classes throughout
-- ✅ **Standard logging**: Integrates with existing structured logging patterns
-
-**2. Enterprise Architecture Alignment**
-- ✅ **Service Layer separation**: Business logic separated from transport concerns
-- ✅ **Dependency injection**: Services injected through Hapi's server app context
-- ✅ **Validation consistency**: Uses Joi schemas like rest of the application
-- ✅ **Testing patterns**: Each layer can be unit tested independently
-
-**3. Control and Maintainability**
-- ✅ **Full control over request/response**: No hidden transport layer behaviors
-- ✅ **Easier debugging**: Direct code path from HTTP request to business logic
-- ✅ **Team familiarity**: Uses patterns the team already knows
-- ✅ **Custom requirements**: Easy to add enterprise features (auth, rate limiting, metrics)
-
-**4. Production Considerations**
-- ✅ **Security integration**: Works with existing auth strategies and middleware
-- ✅ **Monitoring**: Integrates with existing APM and logging infrastructure
-- ✅ **Performance**: No additional abstraction layer overhead
-- ✅ **Scaling**: Follows established patterns for horizontal scaling
-
-#### ❌ Disadvantages of Direct Implementation
-
-**1. Manual Protocol Implementation**
-- ❌ Must manually implement JSON-RPC validation (though we used Joi for consistency)
-- ❌ Need to handle MCP method routing manually (though we used service layer patterns)
-- ❌ More initial setup compared to using SDK transports
-- ❌ Must stay updated with MCP protocol changes manually
-
-**2. Missing SDK Features**
-- ❌ Can't use SDK's built-in session management (though we can implement our own)
-- ❌ No automatic protocol validation (though our implementation is compliant)
-- ❌ No built-in SSE streaming for server-to-client notifications
-- ❌ Must implement error codes manually (though we follow JSON-RPC standards)
-
-**3. Alternative: StreamableHTTPServerTransport Integration**
-- ✅ **Could have integrated** `StreamableHTTPServerTransport` with Hapi.js using session management
-- ✅ **Would provide** automatic protocol compliance and SSE streaming
-- ✅ **Would handle** session management and resumability features
-- ❌ **Would require** more complex integration with existing enterprise patterns
-- ❌ **Would add** another abstraction layer to debug and maintain
-
-### When to Use Each Approach
-
-#### Use StreamableHTTPServerTransport When:
-- ✅ **Building new MCP-focused services** without existing framework constraints
-- ✅ **Need SSE streaming** for server-to-client notifications
-- ✅ **Want automatic session management** and resumability
-- ✅ **Prefer SDK-managed protocol compliance**
-- ✅ **Building standalone MCP servers**
-
-#### Use Direct JSON-RPC Implementation When:
-- ✅ **Integrating with existing enterprise applications** (like our Hapi.js project)
-- ✅ **Have established patterns** (Repository, Service Layer, Domain-Driven Design)
-- ✅ **Need tight integration** with existing middleware and auth systems
-- ✅ **Want full control** over request/response handling
-- ✅ **Team familiarity** with the existing framework is high
+- Adhering to the MCP protocol specifications
+- Implementing JSON-RPC over HTTP in a Hapi.js environment
+- Managing state and sessions for MCP connections
+- Ensuring secure and efficient communication between AI assistants and backend services
 
 ## Issues Encountered
 
@@ -535,7 +400,6 @@ architecture-beta
     
     service note_repository(disk)[Note Repository] in data_layer
     service note_model(disk)[Note Model] in data_layer
-    service note_parser(disk)[Note Parser] in data_layer
     service file_manager(disk)[File Manager] in data_layer
     
     service file_system(disk)[File System] in storage_layer
@@ -550,7 +414,6 @@ architecture-beta
     note_service:B --> T:note_repository
     
     note_repository:R --> L:note_model
-    note_repository:L --> R:note_parser
     note_repository:B --> T:file_manager
     
     file_manager:B --> T:file_system
@@ -719,383 +582,4 @@ class McpService {
 
   async _executeCreateNote(args, requestId) {
     const { title, content } = args
-    const noteResult = await this.noteService.createNote({ title, content })
-
-    return {
-      jsonrpc: '2.0',
-      result: {
-        content: [{
-          type: 'text',
-          text: `✅ **Note created successfully!**
-
-**Title:** ${noteResult.details.title}
-**ID:** ${noteResult.details.id}
-**Created:** ${noteResult.details.createdAt.toISOString()}
-
-The note has been saved and can be retrieved using the get_note tool with ID: ${noteResult.details.id}`
-        }]
-      },
-      id: requestId
-    }
-  }
-}
 ```
-
-### 3. Service Integration
-
-The implementation integrates with the service layer architecture:
-
-```javascript
-// src/mcp/plugins/mcp.js
-import { FileNoteRepository } from '../../data/repositories/note.js'
-import { NoteService } from '../v1/notes/services/note.js'
-import { createMcpService } from '../v1/mcp/services/mcp-tools.js'
-import { mcpTransportRoutes } from '../v1/mcp/endpoints/mcp-transport.js'
-
-const mcpTransportPlugin = {
-  name: 'mcp-transport-server',
-  version: '1.0.0',
-  register: async function (server, options) {
-    // Initialize repository and services using factory functions
-    const notesDir = config.get('mcp.notesDir', './data/notes')
-    const noteRepository = createFileNoteRepository(notesDir)
-    const noteService = createNoteService(noteRepository)
-
-    // Store services in server app context
-    server.app.noteService = noteService
-
-    // Register routes
-    server.route(mcpTransportRoutes)
-  }
-}
-```
-
-### 4. Repository and Data Layer
-
-Following the Repository Pattern with domain error handling:
-
-```javascript
-// src/data/repositories/note.js
-import { createNote } from '../models/note.js'
-import { parseFileContent } from '../utils/note-parser.js'
-import { createFileManager } from '../../common/filesystem/file-manager.js'
-import { createNoteNotFoundError, createFileOperationError } from '../../common/errors/domain-errors.js'
-
-function createFileNoteRepository(notesDirectory) {
-  const fileManager = createFileManager(notesDirectory)
-  const logger = createLogger()
-
-  return {
-    async create(noteData) {
-      try {
-        const note = createNote(noteData)
-        const fileName = `${note.id}.md`
-        
-        await fileManager.writeFile(fileName, note.toFileContent())
-        
-        logger.debug('Note created in repository:', { id: note.id, fileName })
-        return note.toJSON()
-      } catch (error) {
-        logger.error('Failed to create note in repository:', error)
-        throw createFileOperationError(`Failed to create note: ${error.message}`)
-      }
-    },
-
-    async findById(id) {
-      try {
-        const fileName = `${id}.md`
-        
-        if (!(await fileManager.fileExists(fileName))) {
-          throw createNoteNotFoundError(`Note with ID ${id} not found`)
-        }
-
-        const fileContent = await fileManager.readFile(fileName)
-        const note = parseFileContent(fileContent, fileName)
-        
-        return note.toJSON()
-      } catch (error) {
-        logger.error('Failed to find note in repository:', error) 
-        throw createFileOperationError(`Failed to read note: ${error.message}`)
-      }
-    }
-  }
-}
-```
-
-## Best Practices
-
-### 1. For Hapi.js Integration
-
-✅ **DO**: Use direct JSON-RPC handling in Hapi route handlers with service layer
-✅ **DO**: Leverage Hapi's built-in JSON parsing with `payload: { parse: true }`
-✅ **DO**: Use Hapi's validation (Joi schemas) and middleware capabilities
-✅ **DO**: Integrate with existing service layer and repository pattern architecture
-✅ **DO**: Use Boom for proper HTTP error handling
-✅ **DO**: Follow domain-driven design with domain-specific error classes
-✅ **DO**: Implement proper logging with structured context
-
-❌ **DON'T**: Try to use `StreamableHTTPServerTransport` within Hapi
-❌ **DON'T**: Bypass Hapi's request processing pipeline
-❌ **DON'T**: Use `h.abandon` unless you're handling responses manually
-❌ **DON'T**: Use static methods in models (prefer utility classes)
-❌ **DON'T**: Nest functions unnecessarily (use simple control structures)
-
-### 2. JSON-RPC Implementation
-
-✅ **DO**: Validate `jsonrpc`, `method`, and `id` fields using Joi schemas
-✅ **DO**: Return proper error codes (-32600, -32602, -32603, etc.)
-✅ **DO**: Include request `id` in all responses
-✅ **DO**: Handle method not found scenarios with proper routing
-✅ **DO**: Use service layer for business logic separation
-✅ **DO**: Implement comprehensive input validation with domain error classes
-
-### 3. Service Architecture
-
-✅ **DO**: Follow Repository Pattern for data access
-✅ **DO**: Implement Service Layer for business logic
-✅ **DO**: Use dependency injection through Hapi server app context
-✅ **DO**: Return formatted response objects with `{ details: data }` structure
-✅ **DO**: Use utility classes instead of static methods
-✅ **DO**: Implement proper error handling at each layer
-
-### 4. Tool Implementation
-
-✅ **DO**: Provide comprehensive input schemas using Joi validation
-✅ **DO**: Return structured content with `type: 'text'`
-✅ **DO**: Include error indicators with `isError: true`
-✅ **DO**: Validate tool arguments before execution at service layer
-✅ **DO**: Use domain-specific error classes for different failure types
-✅ **DO**: Log tool execution with structured context
-
-### 5. File Format and Data Handling
-
-When implementing file-based storage with the repository pattern:
-
-```javascript
-// Correct format (no extra indentation) - NoteModel.toFileContent()
-toFileContent() {
-  const header = `ID: ${this.id}
-TITLE: ${this.title}
-CREATED: ${this.createdAt.toISOString()}
----`
-
-  return `${header}
-${content}`
-}
-
-// Use utility functions for parsing (functional approach)
-function parseFileContent(content, filename) {
-  // Parse file content and return note object using factory function
-  const noteData = extractNoteData(content)
-  return createNote(noteData)
-}
-
-function createNoteFromDocument(content, filename) {
-  return parseFileContent(content, filename)
-}
-```
-
-## Testing
-
-### Manual Testing Examples
-
-```bash
-# Initialize MCP connection
-curl -X POST http://localhost:3000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test-client", "version": "1.0.0"}}}'
-
-# List available tools
-curl -X POST http://localhost:3000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/list"}'
-
-# Create a note
-curl -X POST http://localhost:3000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "create_note", "arguments": {"title": "Test Note", "content": "Hello World!"}}}'
-
-# Get a specific note
-curl -X POST http://localhost:3000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "get_note", "arguments": {"noteId": "note_1754048150071_h5rxn2njn"}}}'
-
-# List all notes
-curl -X POST http://localhost:3000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "list_notes", "arguments": {}}}'
-```
-
-### Expected Responses
-
-All responses follow JSON-RPC 2.0 format with the refactored structure:
-
-#### Initialize Response
-```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "protocolVersion": "2024-11-05",
-    "capabilities": { "tools": {}, "prompts": {}, "resources": {} },
-    "serverInfo": { "name": "notes-server", "version": "1.0.0" }
-  },
-  "id": 1
-}
-```
-
-#### Tools List Response
-```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "tools": [
-      {
-        "name": "create_note",
-        "description": "Create a new note with title and content",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "title": { "type": "string", "minLength": 1, "maxLength": 255 },
-            "content": { "type": "string", "maxLength": 10000 }
-          },
-          "required": ["title", "content"],
-          "additionalProperties": false
-        }
-      },
-      {
-        "name": "get_note",
-        "description": "Retrieve a note by its unique ID",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "noteId": { "type": "string", "pattern": "^note_\\d+_[a-z0-9]+$" }
-          },
-          "required": ["noteId"],
-          "additionalProperties": false
-        }
-      },
-      {
-        "name": "list_notes",
-        "description": "List all available notes with their metadata",
-        "inputSchema": { "type": "object", "additionalProperties": false }
-      }
-    ]
-  },
-  "id": 2
-}
-```
-
-#### Create Note Success Response
-```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "content": [{
-      "type": "text",
-      "text": "✅ **Note created successfully!**\n\n**Title:** Test Note\n**ID:** note_1754048150071_h5rxn2njn\n**Created:** 2025-08-01T11:35:50.071Z\n\nThe note has been saved and can be retrieved using the get_note tool with ID: note_1754048150071_h5rxn2njn"
-    }]
-  },
-  "id": 3
-}
-```
-
-#### Error Response
-```json
-{
-  "jsonrpc": "2.0",
-  "error": {
-    "code": -32602,
-    "message": "Invalid params: \"title\" is required"
-  },
-  "id": 3
-}
-```
-
-## Future Recommendations
-
-### 1. For New Hapi.js + MCP Projects
-
-1. **Start with direct JSON-RPC implementation** - don't attempt transport abstractions
-2. **Design tools first** - define your MCP tools before implementing routes  
-3. **Use Hapi plugins** - encapsulate MCP functionality in a reusable plugin
-4. **Implement comprehensive validation** - validate both MCP protocol and tool arguments
-5. **Add proper logging** - log MCP method calls for debugging
-6. **Follow enterprise patterns** - Repository Pattern, Service Layer, Domain-Driven Design
-7. **Use domain-specific errors** - create error classes for different failure scenarios
-8. **Avoid static methods** - use utility classes and dependency injection instead
-9. **Structure endpoints properly** - follow `/api/v{version}/{domain}/` routing conventions
-10. **Implement proper error handling** - use Boom for HTTP errors and domain errors for business logic
-
-### 2. Alternative Frameworks
-
-If using other Node.js frameworks:
-
-- **Express**: Similar approach, use middleware for JSON-RPC parsing
-- **Fastify**: Leverage schema validation for MCP protocol
-- **Standalone**: Consider using MCP's provided transports
-
-### 3. Production Considerations
-
-- **Authentication**: Add authentication middleware before MCP routes
-- **Rate limiting**: Implement rate limiting for MCP endpoints
-- **Monitoring**: Add metrics for MCP tool usage
-- **Validation**: Strict input validation using Joi schemas for security
-- **Error handling**: Comprehensive error logging with domain-specific error classes
-- **Service layer**: Proper separation of concerns with repository pattern
-- **Documentation**: JSDoc documentation for all service methods
-- **Testing**: Unit tests for services, integration tests for endpoints
-- **Configuration**: Environment-based configuration for directories and limits
-
-### 4. Transport Selection Guide
-
-| Use Case | Recommended Approach | Architecture Notes |
-|----------|---------------------|-------------------|
-| Standalone MCP server | `StreamableHTTPServerTransport` | Simple, SDK-managed, session support |
-| Integration with Express | `StreamableHTTPServerTransport` OR Direct JSON-RPC | Both work well, SDK provides sessions/SSE |
-| Integration with Hapi.js | Direct JSON-RPC OR `StreamableHTTPServerTransport` | Direct = enterprise patterns, SDK = sessions |
-| Enterprise applications | Direct JSON-RPC with service layer | Repository pattern, domain errors, validation |
-| Rapid prototyping | `StreamableHTTPServerTransport` | Quick setup, automatic compliance |
-| Desktop applications | `StdioServerTransport` | Local communication |
-| WebSocket communication | Custom transport | Real-time requirements |
-
-## Conclusion
-
-Thank you for the correction! After reviewing the [Express example](https://github.com/modelcontextprotocol/typescript-sdk?tab=readme-ov-file#streamable-http) and [session management documentation](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#session-management), it's clear that **`StreamableHTTPServerTransport` can indeed work with web frameworks** like Hapi.js.
-
-### Key Insights
-
-**✅ Both approaches are valid:**
-1. **`StreamableHTTPServerTransport`**: Provides session management, SSE streaming, automatic protocol compliance
-2. **Direct JSON-RPC**: Provides enterprise integration, framework consistency, full control
-
-**✅ The choice depends on priorities:**
-- **For new MCP-focused services**: SDK transport may be ideal
-- **For enterprise integration**: Direct implementation offers better framework alignment
-- **For session features**: SDK transport provides built-in session management and resumability
-- **For team consistency**: Direct implementation follows established patterns
-
-### Our Choice: Direct JSON-RPC Implementation
-
-We chose direct implementation for **enterprise-specific reasons**:
-- ✅ **Aligns with existing patterns**: Repository Pattern, Service Layer, Domain-Driven Design
-- ✅ **Framework consistency**: Uses Hapi's validation, error handling, middleware
-- ✅ **Team familiarity**: Follows established architectural decisions
-- ✅ **Enterprise features**: Easy integration with auth, logging, monitoring
-- ✅ **Debugging simplicity**: One less abstraction layer to troubleshoot
-
-### Alternative: StreamableHTTPServerTransport
-
-We could have used `StreamableHTTPServerTransport` and gained:
-- ✅ **Session management**: Automatic session handling and resumability
-- ✅ **SSE streaming**: Server-to-client notifications
-- ✅ **Protocol compliance**: SDK-managed validation and lifecycle
-- ✅ **Future-proofing**: Automatic updates with protocol changes
-
-**Key Architectural Benefits of Our Approach:**
-- **Separation of Concerns**: Clear boundaries between endpoints, services, repositories, and models
-- **Domain-Driven Design**: Domain-specific error classes and business logic encapsulation
-- **Testability**: Each layer can be tested independently with proper dependency injection
-- **Maintainability**: Consistent patterns and clear code organization
-- **Enterprise Integration**: Works seamlessly with existing middleware and infrastructure
-
-**The takeaway**: **Both approaches work**. The choice between `StreamableHTTPServerTransport` and direct JSON-RPC implementation should be based on your specific requirements, team expertise, and architectural priorities. MCP is flexible enough to support either approach while maintaining full protocol compliance.
