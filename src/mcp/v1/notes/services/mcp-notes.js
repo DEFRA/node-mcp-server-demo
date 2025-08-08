@@ -96,7 +96,7 @@ function createMcpNoteService (mcpNoteRepository) {
       await mcpNoteRepository.deleteByNoteId(noteId)
 
       logger.info('MCP note deleted successfully:', { noteId: note.noteId, title: note.title })
-      return {details: note}
+      return { details: note }
     } catch (error) {
       logger.error('Error retrieving MCP note by ID:', error)
       throw error
