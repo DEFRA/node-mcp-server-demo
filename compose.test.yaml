@@ -18,4 +18,4 @@ services:
       - ./package.json:/home/node/package.json
       - ./coverage:/home/node/coverage
     networks:
-      - ai-tech-radar
+      - note-hapi-mcp
