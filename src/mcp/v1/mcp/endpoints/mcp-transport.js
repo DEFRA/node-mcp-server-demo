@@ -4,6 +4,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js'
 import { registerMcpTools } from '../services/mcp-tools.js'
 import { createLogger } from '../../../../common/logging/logger.js'
+import { ALLOWED_HOSTS, ALLOWED_ORIGINS } from '../../../../constants/mcp-transport-config.js'
 
 // Session storage - in production, consider Redis or database
 const transports = {}
@@ -82,37 +83,13 @@ async function handleMcpTransport (request, h) {
           // Store the transport by session ID
           transports[newSessionId] = transport
           initializedSessionId = newSessionId
-          const sessionIdObj = { sessionId: newSessionId }
-          logger.info(`MCP session initialized  ${JSON.stringify(sessionIdObj)}`)
+          logger.info(`MCP session initialized, Session ID: ${JSON.stringify(initializedSessionId)}`)
         },
         // Only enable DNS rebinding protection in production
         // This allows MCP inspector and other development tools to work properly
         enableDnsRebindingProtection: isProduction,
-        allowedHosts: [
-          '127.0.0.1',                           // Local development
-          'localhost',                           // Local development
-          'localhost:3000',                      // Local development with port
-          '0.0.0.0',                            // Docker container binding
-          '0.0.0.0:3000',                       // Docker container with port
-          'node-mcp-server-demo-development',    // Docker container name
-          'node-mcp-server-demo-development:3000' // Docker container name with port
-          // Add your production domains here, e.g.:
-          // 'your-domain.com',
-          // 'api.your-domain.com'
-        ],
-        allowedOrigins: [
-          'http://localhost:3000',               // Local development
-          'http://127.0.0.1:3000',              // Local development
-          'http://0.0.0.0:3000',                // Docker container
-          'http://localhost:6274',              // mcp inspector
-          'http://localhost:6277',              // mcp inspector
-          'http://node-mcp-server-demo-development:3000', // Docker inter-container
-          // Allow undefined/null origins for development tools like MCP inspector
-          ...(isProduction ? [] : [null, undefined, ''])
-          // Add your production origins here, e.g.:
-          // 'https://your-domain.com',
-          // 'https://www.your-domain.com'
-        ]
+        allowedHosts: ALLOWED_HOSTS,
+        allowedOrigins: ALLOWED_ORIGINS,
       })
 
       // Clean up transport when closed
