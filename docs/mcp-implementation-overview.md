@@ -51,18 +51,13 @@ Our implementation follows a layered architecture that integrates MCP capabiliti
 
 ### 1. MCP Transport Endpoints (`/src/mcp/endpoints/mcp-transport.js`)
 
-This is the core MCP integration point that implements the StreamableHTTPServerTransport from the official MCP SDK. It handles:
+This component directly integrates the `StreamableHTTPServerTransport` from the MCP SDK. It handles:
 
-- **Session Management**: Creates and manages stateful MCP sessions
-- **Protocol Communication**: Handles MCP protocol messages (initialize, tools/list, tools/call)
-- **Server-Sent Events (SSE)**: Provides real-time streaming capabilities
-- **Security**: Implements DNS rebinding protection and CORS
+- **Session Management**: Automatically managed by the SDK.
+- **Protocol Communication**: Processes MCP protocol messages (initialize, tools/list, tools/call).
+- **Streaming**: Provides real-time updates via Server-Sent Events (SSE).
 
-**Why separate from regular endpoints?**
-- MCP requires specific protocol compliance and message formatting
-- Transport layer needs session state management
-- Streaming capabilities via SSE are MCP-specific requirements
-- Security model differs from traditional APIs
+For more details, refer to the [MCP SDK on GitHub](https://github.com/modelcontextprotocol/typescript-sdk).
 
 ### 2. MCP Tools Service (`/src/mcp/services/mcp-tools.js`)
 
@@ -174,7 +169,6 @@ mcpServer.registerTool('create_note', {
 - Environment-specific DNS rebinding protection
 - Development mode allows MCP inspector connections (null origins)
 - Production mode enforces strict origin validation
-- CORS properly configured for browser clients
 - Session isolation prevents cross-session data leaks
 
 ## Security Implementation Details

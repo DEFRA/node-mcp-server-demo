@@ -31,10 +31,16 @@ We implement the **MCP protocol** to serve modern client types and use cases:
 ## MCP Transport Endpoints
 
 ### Purpose
-- **Protocol Compliance**: Implements official MCP specification
-- **AI Assistant Integration**: Designed for AI tools and assistants
-- **Streaming Support**: Server-Sent Events for real-time communication
-- **Session Management**: Stateful connections with lifecycle management
+
+The MCP transport endpoints leverage the `StreamableHTTPServerTransport` from the MCP SDK to provide:
+
+- **Protocol Compliance**: Ensures adherence to the MCP specification.
+- **Session Management**: Managed automatically by the SDK.
+- **Streaming Support**: Enables real-time communication via Server-Sent Events (SSE).
+
+This approach eliminates the need for custom transport logic, streamlining the integration process.
+
+For more details, refer to the [MCP SDK on GitHub](https://github.com/modelcontextprotocol/typescript-sdk).
 
 ### Endpoint Structure
 ```
@@ -63,7 +69,6 @@ DELETE /mcp/{sessionId} # Session cleanup
 - ✅ Protocol-compliant error handling
 - ✅ Zod schema validation
 - ✅ DNS rebinding protection
-- ✅ CORS for browser clients
 
 ## Key Differences (MCP vs REST)
 

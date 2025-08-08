@@ -4,6 +4,17 @@
 
 This document provides a detailed technical explanation of the MCP integration implementation, focusing on the key components, architectural decisions, and critical issues that were overcome during development.
 
+## High-Level Overview
+
+The Model Context Protocol (MCP) integration in this project bridges the gap between the MCP SDK and the Hapi.js framework. It enables seamless communication between clients and the server using the MCP protocol while maintaining compatibility with Hapi.js' plugin architecture. Key features include:
+
+- **MCP SDK Integration**: Directly utilizes the `StreamableHTTPServerTransport` provided by the MCP SDK for handling protocol message routing.
+- **Zod Schema Validation**: Leveraging Zod schemas for tool validation to ensure compatibility with the MCP SDK.
+- **Session Management**: Stateful session handling with in-memory storage and lifecycle management.
+- **Security and DNS**: DNS rebinding protection is enabled to ensure secure communication.
+
+This integration ensures flexibility, maintainability, and scalability, making it a robust solution for implementing the MCP protocol in a Hapi.js environment.
+
 ## Key Technical Components
 
 ### 1. StreamableHTTPServerTransport Integration
@@ -119,66 +130,6 @@ sessions.set(sessionId, {
 - Sessions are cleaned up on explicit disconnect
 - Potential for memory leaks if clients don't disconnect properly
 - Production deployment requires Redis-based session storage
-
-### 4. File System Abstraction Layer
-
-**Component**: `/src/common/filesystem/file-manager.js`
-
-**Critical Bug Discovered**: FileManager was hardcoded to only list `.txt` files, but notes are stored as `.md` files.
-
-**Problem Code**:
-```javascript
-// Original broken implementation
-async listFiles(relativePath = '.') {
-  const files = await fs.readdir(targetDir)
-  const filteredFiles = files.filter(file => file.endsWith('.txt')) // BUG!
-  return filteredFiles
-}
-```
-
-**Root Cause**: Copy-paste error where the file extension filter was hardcoded
-
-**Fix Implementation**:
-```javascript
-// Fixed implementation with configurable extension
-async listFiles(relativePath = '.', extension = '.txt') {
-  const files = await fs.readdir(targetDir)
-  const filteredFiles = files.filter(file => file.endsWith(extension))
-  this.logger.debug(`Listed ${filteredFiles.length} ${extension} files from ${relativePath}`)
-  return filteredFiles
-}
-```
-
-**Service Layer Integration**:
-```javascript
-// Note service properly specifies .md extension
-async listAllNotes() {
-  const filenames = await this.fileManager.listFiles('.', '.md') // Correct extension
-  // ... rest of implementation
-}
-```
-
-### 5. CORS and Security Configuration
-
-**Component**: CORS setup in transport plugin
-
-**Technical Challenge**: Browser-based MCP clients need specific CORS configuration
-
-**Security Requirements**:
-- Allow credentials for session management
-- Expose custom headers for session IDs
-- Restrict origins in production
-- Enable preflight requests
-
-**Implementation**:
-```javascript
-cors: {
-  origin: true, // Development - allows all origins
-  credentials: true, // Required for session cookies/headers
-  exposedHeaders: ['Mcp-Session-Id'], // Allows client to read session ID
-  optionsSuccessStatus: 200 // For legacy browser support
-}
-```
 
 ## Critical Issues Resolved
 

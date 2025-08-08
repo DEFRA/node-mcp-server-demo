@@ -80,32 +80,7 @@ allowedOrigins: [
 - This **MUST NOT** be present in production as it creates a security vulnerability
 - The `isProduction` check ensures this is automatically handled based on NODE_ENV
 
-### 2. CORS Configuration
-
-**Current Configuration (Development)**:
-```javascript
-cors: {
-  origin: true,  // Allows all origins
-  credentials: true,
-  exposedHeaders: ['Mcp-Session-Id']
-}
-```
-
-**Production Configuration**:
-```javascript
-cors: {
-  origin: [
-    'https://your-frontend.com',
-    'https://admin.your-domain.com',
-    'https://app.your-domain.com'
-  ],
-  credentials: true,
-  exposedHeaders: ['Mcp-Session-Id'],
-  optionsSuccessStatus: 200
-}
-```
-
-### 3. Session Storage
+### 2. Session Storage
 
 **Current Implementation (In-Memory)**:
 ```javascript

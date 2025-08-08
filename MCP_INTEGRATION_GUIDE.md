@@ -117,46 +117,13 @@ Parse error: Invalid literal value, expected "2.0"
 
 ### MCP Protocol Compliance Verification
 
-**✅ Our implementation fully complies with MCP protocol** as defined in the [official specification](https://github.com/modelcontextprotocol/typescript-sdk). Here's the compliance checklist:
+Our implementation directly utilizes the `StreamableHTTPServerTransport` provided by the MCP SDK. This ensures:
 
-#### Required MCP Methods ✅
-- ✅ **`initialize`**: Returns server capabilities and info
-- ✅ **`tools/list`**: Lists available tools with schemas  
-- ✅ **`tools/call`**: Executes tools and returns results
-- ✅ **`notifications/initialized`**: Handles initialization complete
+- **Protocol Compliance**: Adheres to the MCP specification without custom transport logic.
+- **Session Management**: Automatically handled by the SDK.
+- **Streaming Support**: Server-Sent Events (SSE) for real-time updates.
 
-#### JSON-RPC 2.0 Compliance ✅
-- ✅ **Request Structure**: Validates `jsonrpc`, `method`, `id` fields
-- ✅ **Response Structure**: Returns `jsonrpc`, `result`/`error`, `id`
-- ✅ **Error Codes**: Uses standard codes (-32600, -32602, -32603)
-- ✅ **Content Type**: Accepts and returns `application/json`
-
-#### MCP-Specific Requirements ✅
-- ✅ **Protocol Version**: Returns `"2024-11-05"` in initialize
-- ✅ **Capabilities**: Declares `tools: {}` capability
-- ✅ **Tool Schemas**: Provides JSON Schema for tool inputs
-- ✅ **Content Format**: Returns `content: [{ type: 'text', text: '...' }]`
-
-#### Validation Test
-```bash
-# This request/response cycle proves full compliance:
-
-# Request (standard MCP initialize)
-curl -X POST http://localhost:3000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0"}}}'
-
-# Response (compliant MCP response)
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "protocolVersion": "2024-11-05",
-    "capabilities": { "tools": {}, "prompts": {}, "resources": {} },
-    "serverInfo": { "name": "notes-server", "version": "1.0.0" }
-  },
-  "id": 1
-}
-```
+For more details, refer to the [MCP SDK on GitHub](https://github.com/modelcontextprotocol/typescript-sdk).
 
 ### When to Use Each Approach
 
@@ -582,4 +549,3 @@ class McpService {
 
   async _executeCreateNote(args, requestId) {
     const { title, content } = args
-```
