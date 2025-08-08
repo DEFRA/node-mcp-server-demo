@@ -75,7 +75,7 @@ const serverConfig = {
     databaseName: {
       doc: 'Database name for mongodb',
       format: String,
-      default: 'fcp-sfd-accelerator',
+      default: 'mcp-mongo-server-demo',
       env: 'MONGO_DATABASE'
     }
   },
@@ -104,6 +104,20 @@ const serverConfig = {
       format: String,
       default: 'x-cdp-request-id',
       env: 'TRACING_HEADER'
+    }
+  },
+  mcp: {
+    enabled: {
+      doc: 'Enable MCP server functionality',
+      format: Boolean,
+      default: false,
+      env: 'MCP_ENABLED'
+    },
+    notesDir: {
+      doc: 'Directory path for storing note files',
+      format: String,
+      default: path.resolve(dirname, '../../data/notes'),
+      env: 'MCP_NOTES_DIR'
     }
   }
 }
