@@ -30,7 +30,6 @@ async function handleMcpDelete (request, h) {
   logger.info('Terminating MCP session', { sessionId })
 
   try {
-    // Close the transport/session
     if (typeof transport.close === 'function') {
       await transport.close()
     }
@@ -70,17 +69,15 @@ async function handleMcpTransport (request, h) {
       transport = transports[sessionId]
       logger.debug('Reusing existing MCP session', JSON.stringify({ sessionId }))
     } else if (!sessionId && isInitializeRequest(request.payload)) {
-      // New initialization request - create new session
+
       logger.info('Creating new MCP session for initialize request')
 
-      // Check if we're in production environment
       const isProduction = process.env.NODE_ENV === 'production'
 
       let initializedSessionId = null
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (newSessionId) => {
-          // Store the transport by session ID
           transports[newSessionId] = transport
           initializedSessionId = newSessionId
           logger.info(`MCP session initialized, Session ID: ${JSON.stringify(initializedSessionId)}`)
@@ -92,7 +89,6 @@ async function handleMcpTransport (request, h) {
         allowedOrigins: ALLOWED_ORIGINS,
       })
 
-      // Clean up transport when closed
       transport.onclose = () => {
         if (transport.sessionId) {
           delete transports[transport.sessionId]
@@ -107,7 +103,7 @@ async function handleMcpTransport (request, h) {
       })
 
       // Register our tools with the MCP server
-      await registerMcpTools(mcpServer, request.server.app.mcpNoteService)
+      await registerMcpTools(mcpServer, request.server.mcpNoteService)
 
       // Connect to the MCP server
       await mcpServer.connect(transport)
@@ -117,7 +113,6 @@ async function handleMcpTransport (request, h) {
         request.raw.res.setHeader('Mcp-Session-Id', initializedSessionId)
       }
     } else {
-      // Invalid request
       return h.response({
         jsonrpc: '2.0',
         error: {
@@ -131,12 +126,10 @@ async function handleMcpTransport (request, h) {
     // Handle the request using the transport
     await transport.handleRequest(request.raw.req, request.raw.res, request.payload)
 
-    // Return h.abandon() since the transport has handled the response
     return h.abandon
   } catch (error) {
     logger.error('Error in MCP transport handler:', error)
 
-    // If response hasn't been sent yet, send error response
     if (!request.raw.res.headersSent) {
       return h.response({
         jsonrpc: '2.0',
@@ -148,7 +141,6 @@ async function handleMcpTransport (request, h) {
       }).code(500)
     }
 
-    // Response already sent, can't do anything
     return h.abandon
   }
 }
