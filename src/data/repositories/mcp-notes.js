@@ -1,12 +1,10 @@
 import { v4 as uuidv4 } from 'uuid'
-import { createNoteModel } from '../models/mcp-notes.js'
-
 /**
  * Repository for Note operations
  * @param {Db} db - MongoDB database instance
  */
 function createMcpNoteRepository (db) {
-  const mcpNotes = createNoteModel(db)
+  const mcpNotes = db.collection('mcp_notes')
 
   /**
    * Create a new note
