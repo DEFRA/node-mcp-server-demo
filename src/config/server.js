@@ -113,12 +113,6 @@ const serverConfig = {
       default: false,
       env: 'MCP_ENABLED'
     },
-    notesDir: {
-      doc: 'Directory path for storing note files',
-      format: String,
-      default: path.resolve(dirname, '../../data/notes'),
-      env: 'MCP_NOTES_DIR'
-    }
   }
 }
 
