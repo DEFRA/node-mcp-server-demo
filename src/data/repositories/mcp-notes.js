@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
+import { randomUUID } from 'crypto'
 /**
  * Repository for Note operations
  * @param {Db} db - MongoDB database instance
@@ -10,11 +10,12 @@ function createMcpNoteRepository (db) {
    * Create a new note
    * @param {Object} noteData - { title, content }
    * @returns {Promise<Object>} The created note
+   * @description Generates a unique noteId using Node.js's built-in randomUUID function.
    */
   async function createNote (noteData) {
     const now = new Date()
     const doc = {
-      noteId: uuidv4(), // Generate a unique ID for the note
+      noteId: randomUUID(), // Generate a unique ID for the note
       ...noteData,
       createdAt: now,
       updatedAt: now
