@@ -1,4 +1,4 @@
-import { createDomainError } from '../../../../common/errors/domain-errors.js'
+
 import { createLogger } from '../../../../common/logging/logger.js'
 
 /**
@@ -24,7 +24,7 @@ function createMcpNoteService (mcpNoteRepository) {
       logger.debug('Creating new MCP note:', { title: noteData.title })
 
       if (!noteData.title || !noteData.content) {
-        throw createDomainError('Title and content are required', 400, 'InvalidNoteDataError')
+        throw Error('InvalidNoteDataError:Title and content are required')
       }
 
       const note = await mcpNoteRepository.createNote(noteData)
@@ -46,13 +46,13 @@ function createMcpNoteService (mcpNoteRepository) {
       logger.debug('Retrieving MCP note by ID:', { noteId })
 
       if (!noteId) {
-        throw createDomainError('Note ID is required', 400, 'InvalidNoteDataError')
+        throw Error('InvalidNoteDataError: Note ID is required')
       }
 
       const note = await mcpNoteRepository.findByNoteId(noteId)
 
       if (!note) {
-        throw createDomainError(`MCP note with ID ${noteId} not found`, 404, 'NoteNotFoundError')
+        throw Error(`NoteNotFoundError: MCP note with ID ${noteId} not found`)
       }
 
       logger.info('MCP note retrieved successfully:', { noteId: note.noteId, title: note.title })
@@ -90,7 +90,7 @@ function createMcpNoteService (mcpNoteRepository) {
       const note = await mcpNoteRepository.findByNoteId(noteId)
 
       if (!note) {
-        throw createDomainError(`Note with note id ${noteId} does not exist`, 404, 'NoteNotFoundError')
+        throw Error(`NoteNotFoundError:Note with note id ${noteId} does not exist`)
       }
 
       await mcpNoteRepository.deleteByNoteId(noteId)
