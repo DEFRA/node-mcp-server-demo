@@ -29,7 +29,7 @@ const mcpTransportPlugin = {
       const mcpNoteService = createMcpNoteService(mcpNoteRepository)
 
       // Store services in server app context for use in transport handlers
-      //server.app.mcpNoteService = mcpNoteService
+      // server.app.mcpNoteService = mcpNoteService
       server.decorate('server', 'mcpNoteService', mcpNoteService)
 
       // Register MCP transport routes (replaces existing /mcp endpoint)

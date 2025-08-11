@@ -69,7 +69,6 @@ async function handleMcpTransport (request, h) {
       transport = transports[sessionId]
       logger.debug('Reusing existing MCP session', JSON.stringify({ sessionId }))
     } else if (!sessionId && isInitializeRequest(request.payload)) {
-
       logger.info('Creating new MCP session for initialize request')
 
       const isProduction = process.env.NODE_ENV === 'production'
