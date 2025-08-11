@@ -174,3 +174,4 @@ compile_commands.json
 # MCP Notes data (but keep README)
 /data/notes/*.txt
 !/data/notes/README.md
+MCP_INTEGRATION_GUIDE.md
