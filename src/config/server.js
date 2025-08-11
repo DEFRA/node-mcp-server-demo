@@ -110,7 +110,7 @@ const serverConfig = {
     enabled: {
       doc: 'Enable MCP server functionality',
       format: Boolean,
-      default: false,
+      default: true,
       env: 'MCP_ENABLED'
     },
   }
