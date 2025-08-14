@@ -12,41 +12,7 @@ This prototype demonstrates the integration of the **Model Context Protocol (MCP
 - **MongoDB**: Ensure a MongoDB instance is running locally or accessible remotely. See the installation instructions below.
 - **Docker**: Install [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/).
 
-### 2.2 Installing MongoDB (macOS and Windows)
-
-#### macOS
-1. Open a terminal.
-2. Install the MongoDB Community Edition using Homebrew:
-
-   ```bash
-   brew tap mongodb/brew
-   brew install mongodb-community
-   ```
-
-3. Start the MongoDB service:
-
-   ```bash
-   brew services start mongodb-community
-   ```
-
-4. Verify that MongoDB is running:
-
-   ```bash
-   mongo --eval 'db.runCommand({ connectionStatus: 1 })'
-   ```
-
-#### Windows
-1. Download the MongoDB Community Edition installer from the [official MongoDB website](https://www.mongodb.com/try/download/community).
-2. Run the installer and follow the setup instructions.
-3. During installation, ensure the "Install MongoDB as a Service" option is selected.
-4. Once installed, MongoDB will start automatically as a Windows service.
-5. Verify that MongoDB is running by opening a Command Prompt and running:
-
-   ```cmd
-   mongo --eval "db.runCommand({ connectionStatus: 1 })"
-   ```
-
-### 2.3 Environment Variables
+### 2.2 Environment Variables
 
 Create a `.env` file in the root of the project directory with the following variables:
 
