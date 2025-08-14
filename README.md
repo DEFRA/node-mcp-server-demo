@@ -6,11 +6,14 @@ This prototype demonstrates the integration of the **Model Context Protocol (MCP
 
 ## 2. Setting Up Your Local Environment
 
+
 ### 2.1 Prerequisites
 
 - **Node.js**: Install [Node.js](http://nodejs.org/) `>= v22` and [npm](https://nodejs.org/) `>= v9`. Using [nvm](https://github.com/nvm-sh/nvm) is recommended for managing Node.js versions.
-- **MongoDB**: Ensure a MongoDB instance is running locally or accessible remotely. See the installation instructions below.
+- **MongoDB**: Ensure a MongoDB instance is running locally or accessible remotely.
+
 - **Docker**: Install [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/).
+
 
 ### 2.2 Environment Variables
 
@@ -27,7 +30,7 @@ MONGO_URI=mongodb://localhost:27017/mcp-prototype
 
 ## 3. Building and Running the Application
 
-You can start the application using either **Docker** or **npm**:
+You can start the application using  **Docker**:
 
 ### 3.1 Using Docker
 
@@ -41,21 +44,6 @@ You can start the application using either **Docker** or **npm**:
    - **API Server**: [http://localhost:3000](http://localhost:3000)
    - **MCP Endpoint**: [http://localhost:3000/mcp](http://localhost:3000/mcp)
    - **Health Check**: [http://localhost:3000/health](http://localhost:3000/health)
-
-### 3.2 Using npm
-
-1. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-2. For production mode:
-
-   ```bash
-   npm start
-   ```
-
 ---
 
 ## 4. Interacting with MCP Tools Using MCP Inspector
@@ -88,6 +76,8 @@ The **MCP Inspector** is a graphical tool that allows users to interact with the
    - Click on the tools tab and list the available tools.
 
 ---
+
+
 
 ## 5. Notes
 
