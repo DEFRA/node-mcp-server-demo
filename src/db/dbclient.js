@@ -17,9 +17,9 @@
  */
 
 import { MongoClient } from 'mongodb'
-import { config } from '../../config/index.js'
-import { getSecureContext } from '../common/secure-context/secure-context'
-import { createLogger } from '../common/logging/logger'
+import { config } from '../config/index.js'
+import { getSecureContext } from '../common/secure-context/secure-context.js'
+import { createLogger } from '../common/logging/logger.js'
 
 const logger = createLogger()
 

@@ -1,15 +1,28 @@
-import { randomUUID } from 'crypto'
 /**
- * Repository for Note operations
- * @param {Db} db - MongoDB database instance
+ * Repository for Note operations.
+ *
+ * This module provides functions to interact with the `mcp_notes` collection in MongoDB.
+ * It includes operations for creating, retrieving, and deleting notes.
+ *
+ * @module createMcpNoteRepository
+ * @requires crypto.randomUUID - Generates unique identifiers for notes
+ * @requires dbClient - MongoDB database client instance
  */
-function createMcpNoteRepository (db) {
-  const mcpNotes = db.collection('mcp_notes')
 
+import { randomUUID } from 'crypto'
+import { dbClient } from '../../db/dbclient.js'
+
+/**
+ * Creates a new note repository.
+ *
+ * @returns {Object} An object containing repository methods.
+ */
+function createMcpNoteRepository () {
   /**
-   * Create a new note
-   * @param {Object} noteData - { title, content }
-   * @returns {Promise<Object>} The created note
+   * Create a new note.
+   *
+   * @param {Object} noteData - The note data containing `title` and `content`.
+   * @returns {Promise<Object>} The created note document.
    * @description Generates a unique noteId using Node.js's built-in randomUUID function.
    */
   async function createNote (noteData) {
@@ -20,6 +33,7 @@ function createMcpNoteRepository (db) {
       createdAt: now,
       updatedAt: now
     }
+    const mcpNotes = dbClient.collection('mcp_notes')
 
     const result = await mcpNotes.insertOne(doc)
     return {
@@ -33,11 +47,13 @@ function createMcpNoteRepository (db) {
   }
 
   /**
-   * Find a note by its noteId
-   * @param {string} noteId - The user-facing noteId (UUID)
-   * @returns {Promise<Object|null>} The note document or null if not found
+   * Find a note by its noteId.
+   *
+   * @param {string} noteId - The user-facing noteId (UUID).
+   * @returns {Promise<Object|null>} The note document or null if not found.
    */
   async function findByNoteId (noteId) {
+    const mcpNotes = dbClient.collection('mcp_notes')
     const note = await mcpNotes.findOne({ noteId })
     if (!note) return null
     return {
@@ -51,10 +67,13 @@ function createMcpNoteRepository (db) {
   }
 
   /**
-   * Get all notes
-   * @returns {Promise<Array>} Array of note documents
+   * Get all notes.
+   *
+   * @returns {Promise<Array>} An array of note documents.
    */
   async function getAllNotes () {
+    const mcpNotes = dbClient.collection('mcp_notes')
+
     const notes = await mcpNotes.find({}).toArray()
     const formattedNotes = []
     for (const note of notes) {
@@ -71,11 +90,14 @@ function createMcpNoteRepository (db) {
   }
 
   /**
-   * Delete a note by its noteId
-   * @param {string} noteId - The user-facing noteId (UUID)
-   * @returns {Promise<boolean>} True if deleted, false if not found
+   * Delete a note by its noteId.
+   *
+   * @param {string} noteId - The user-facing noteId (UUID).
+   * @returns {Promise<boolean>} True if the note was deleted, false if not found.
    */
   async function deleteByNoteId (noteId) {
+    const mcpNotes = dbClient.collection('mcp_notes')
+
     const result = await mcpNotes.deleteOne({ noteId })
     return result.deletedCount > 0
   }

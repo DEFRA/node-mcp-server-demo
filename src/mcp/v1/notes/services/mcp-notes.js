@@ -1,14 +1,13 @@
-
 import { createLogger } from '../../../../common/logging/logger.js'
-
+import { createMcpNoteRepository } from '../../../../data/repositories/mcp-notes.js'
 /**
  * Create a MCP Note service
- * @param {object} mcpNoteRepository - The MCP note repository
  * @returns {object} MCP Note service object with methods
  */
 
-function createMcpNoteService (mcpNoteRepository) {
+function createMcpNoteService () {
   const logger = createLogger()
+  const mcpNoteRepository = createMcpNoteRepository()
 
   /**
    * Create a new MCP note
@@ -83,6 +82,43 @@ function createMcpNoteService (mcpNoteRepository) {
     }
   }
 
+  /**
+ * Updates an existing MCP note.
+ *
+ * @param {string} noteId - The ID of the note to update.
+ * @param {Object} updatedData - The fields to update (e.g., `title`, `content`).
+ * @returns {Promise<Object>} The updated note.
+ * @throws {Error} If the note does not exist or the update fails.
+ */
+  async function updateNote (noteId, updatedData) {
+    try {
+      logger.debug('Updating MCP note:', { noteId, updatedData })
+      
+
+      if (!noteId || !updatedData) {
+        throw Error('InvalidNoteDataError: Note ID and content are required')
+      }
+      // checking if note exists
+      const existingNote = await getNoteById(noteId)
+
+      if (!existingNote) {
+        throw Error(`NoteNotFoundError: MCP note with ID ${noteId} not found`)
+      }
+
+      // merge existing note content
+      const mergedData = { ...existingNote.details, ...updatedData }
+
+      const updatedNote = await mcpNoteRepository.updateNote(noteId, mergedData)
+      
+      logger.info('MCP note updated successfully:', { noteId: updatedNote.noteId, title: updatedNote.title })
+
+      return { details: updatedNote }
+    } catch (error) {
+      logger.error('Error updating MCP note:', error)
+      throw error
+    }
+  }
+
   async function deleteByNoteId (noteId) {
     try {
       logger.debug('Deleting MCP note by ID:', { noteId })
@@ -107,6 +143,7 @@ function createMcpNoteService (mcpNoteRepository) {
     createNote,
     getNoteById,
     getAllNotes,
+    updateNote,
     deleteByNoteId
   }
 }
