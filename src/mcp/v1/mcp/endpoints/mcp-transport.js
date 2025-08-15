@@ -140,7 +140,7 @@ async function handleMcpTransport (request, h) {
       }).code(500)
     }
 
-    return h.abandon
+    return h.close
   }
 }
 
@@ -170,7 +170,7 @@ async function handleMcpGet (request, h) {
     if (!request.raw.res.headersSent) {
       return h.response('Internal server error').code(500)
     }
-    return h.abandon
+    return h.close
   }
 }
 
