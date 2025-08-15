@@ -93,7 +93,6 @@ function createMcpNoteService () {
   async function updateNote (noteId, updatedData) {
     try {
       logger.debug('Updating MCP note:', { noteId, updatedData })
-      
 
       if (!noteId || !updatedData) {
         throw Error('InvalidNoteDataError: Note ID and content are required')
@@ -109,7 +108,7 @@ function createMcpNoteService () {
       const mergedData = { ...existingNote.details, ...updatedData }
 
       const updatedNote = await mcpNoteRepository.updateNote(noteId, mergedData)
-      
+
       logger.info('MCP note updated successfully:', { noteId: updatedNote.noteId, title: updatedNote.title })
 
       return { details: updatedNote }
