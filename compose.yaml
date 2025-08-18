@@ -23,8 +23,9 @@ services:
       PORT_DEBUG: 9232
       NODE_ENV: development
       MONGO_URI: mongodb://mongodb:27017/
+      MCP_ENABLED: true
     networks:
-      - ai-tech-radar
+      - note-hapi-mcp
 
   mongodb:
     image: mongo:6.0.13
@@ -33,13 +34,13 @@ services:
     volumes:
       - mongodb-data:/data
     networks:
-      - ai-tech-radar
+      - note-hapi-mcp
 
 volumes:
   mongodb-data:
 
 networks:
-  ai-tech-radar:
-    name: ai-tech-radar
+  note-hapi-mcp:
+    name: note-hapi-mcp
     driver: bridge
 

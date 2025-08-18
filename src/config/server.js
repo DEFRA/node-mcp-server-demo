@@ -75,7 +75,7 @@ const serverConfig = {
     databaseName: {
       doc: 'Database name for mongodb',
       format: String,
-      default: 'fcp-sfd-accelerator',
+      default: 'mcp-mongo-server-demo',
       env: 'MONGO_DATABASE'
     }
   },
@@ -105,6 +105,14 @@ const serverConfig = {
       default: 'x-cdp-request-id',
       env: 'TRACING_HEADER'
     }
+  },
+  mcp: {
+    enabled: {
+      doc: 'Enable MCP server functionality',
+      format: Boolean,
+      default: true,
+      env: 'MCP_ENABLED'
+    },
   }
 }
 

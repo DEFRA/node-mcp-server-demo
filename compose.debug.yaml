@@ -4,5 +4,5 @@ services:
     command: npm run start:debug
 
 networks:
-  ai-tech-radar:
+  note-hapi-mcp:
     driver: bridge
