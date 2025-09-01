@@ -1,5 +1,9 @@
 import { mcpTransportRoutes } from '../v1/mcp/endpoints/mcp-transport.js'
+<<<<<<< HEAD
 import { createNoteWithValidation, fetchNoteById, fetchAllNotes, removeNoteById } from '../v1/notes/services/mcp-notes.js'
+=======
+import { createMcpNoteService } from '../v1/notes/services/mcp-notes.js'
+>>>>>>> 433fa523ed9e5fc7d9ce83c14fe1a2fb5b05f819
 import { createLogger } from '../../common/logging/logger.js'
 
 /**
@@ -15,6 +19,7 @@ const mcpTransportPlugin = {
     try {
       logger.info('Initializing MCP Transport server plugin...')
 
+<<<<<<< HEAD
       // Register service functions directly
       server.decorate('server', 'mcpNoteService', {
         createNoteWithValidation,
@@ -22,6 +27,14 @@ const mcpTransportPlugin = {
         fetchAllNotes,
         removeNoteById
       })
+=======
+      // Create services
+      const mcpNoteService = createMcpNoteService()
+
+      // Store services in server app context for use in transport handlers
+      // server.app.mcpNoteService = mcpNoteService
+      server.decorate('server', 'mcpNoteService', mcpNoteService)
+>>>>>>> 433fa523ed9e5fc7d9ce83c14fe1a2fb5b05f819
 
       // Register MCP transport routes (replaces existing /mcp endpoint)
       server.route(mcpTransportRoutes)

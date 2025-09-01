@@ -1,5 +1,6 @@
 import { createLogger } from '../../../../common/logging/logger.js'
 import { z } from 'zod'
+import { showContentMsg } from './utils.js'
 
 /**
  * Register MCP tools with the SDK McpServer
@@ -28,22 +29,16 @@ async function registerMcpTools (mcpServer, mcpNoteService) {
       const result = await mcpNoteService.createNoteWithValidation({ title, content })
 
       return {
-        content: [{
-          type: 'text',
-          text: `✅ **MCP Note created successfully!**
+        content: await showContentMsg(`✅ **MCP Note created successfully!**
 
 **Title:** ${result.details.title}
 **Note ID:** ${result.details.noteId}
-**Created:** ${result.details.createdAt.toISOString()}`
-        }]
+**Created:** ${result.details.createdAt.toISOString()}`)
       }
     } catch (error) {
       logger.error('Error in create_mcp_note tool:', error)
       return {
-        content: [{
-          type: 'text',
-          text: `❌ Failed to create MCP note: ${error.message}`
-        }],
+        content: await showContentMsg(`❌ Failed to create MCP note: ${error.message}`),
         isError: true
       }
     }
@@ -64,17 +59,12 @@ async function registerMcpTools (mcpServer, mcpNoteService) {
 
       if (!result) {
         return {
-          content: [{
-            type: 'text',
-            text: `❌ Note not found with ID: ${noteId}`
-          }]
+          content: await showContentMsg(`❌ Note not found with ID: ${noteId}`)
         }
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: `📝 **MCP Note Retrieved**
+        content: await showContentMsg(`📝 **MCP Note Retrieved**
 
 **Title:** ${result.details.title}
 **ID:** ${result.details.noteId}
@@ -82,16 +72,12 @@ async function registerMcpTools (mcpServer, mcpNoteService) {
 **Updated:** ${result.details.updatedAt}
 
 **Content:**
-${result.details.content}`
-        }]
+${result.details.content}`)
       }
     } catch (error) {
       logger.error('Error in get_mcp_note tool:', error)
       return {
-        content: [{
-          type: 'text',
-          text: `❌ Failed to retrieve note: ${error.message}`
-        }],
+        content: await showContentMsg(`❌ Failed to retrieve note: ${error.message}`),
         isError: true
       }
     }
@@ -108,10 +94,7 @@ ${result.details.content}`
 
       if (notes.length === 0) {
         return {
-          content: [{
-            type: 'text',
-            text: '📝 **No MCP notes found**\n\nUse the create_mcp_note tool to create your first note.'
-          }]
+          content: await showContentMsg('📝 **No MCP notes found**\n\nUse the create_mcp_note tool to create your first note.')
         }
       }
 
@@ -120,18 +103,12 @@ ${result.details.content}`
       }).join('\n')
 
       return {
-        content: [{
-          type: 'text',
-          text: `📝 **Available MCP Notes** (${notes.length} total)\n\n${notesList}\n\nUse the get_mcp_note tool with a specific Note ID to retrieve a note's content.`
-        }]
+        content: await showContentMsg(`📝 **Available MCP Notes** (${notes.length} total)\n\n${notesList}\n\nUse the get_mcp_note tool with a specific Note ID to retrieve a note's content.`)
       }
     } catch (error) {
       logger.error('Error in list_mcp_notes tool:', error)
       return {
-        content: [{
-          type: 'text',
-          text: `❌ Failed to list MCP notes: ${error.message}`
-        }],
+        content: await showContentMsg(`❌ Failed to list MCP notes: ${error.message}`),
         isError: true
       }
     }
@@ -152,28 +129,19 @@ ${result.details.content}`
 
       if (!result) {
         return {
-          content: [{
-            type: 'text',
-            text: `❌ Note not found with ID: ${noteId}`
-          }]
+          content: await showContentMsg(`❌ Note not found with ID: ${noteId}`)
         }
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: `🗑️ **MCP Note Deleted**
+        content: await showContentMsg(`🗑️ **MCP Note Deleted**
 
-**Note ID:** ${noteId}`
-        }]
+**Note ID:** ${noteId}`)
       }
     } catch (error) {
       logger.error('Error in delete_mcp_note tool:', error)
       return {
-        content: [{
-          type: 'text',
-          text: `❌ Failed to delete note: ${error.message}`
-        }],
+        content: await showContentMsg(`❌ Failed to delete note: ${error.message}`),
         isError: true
       }
     }
