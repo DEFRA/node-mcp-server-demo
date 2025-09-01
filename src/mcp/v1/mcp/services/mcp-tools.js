@@ -6,7 +6,7 @@ import { z } from 'zod'
  * This bridges our existing service layer with the MCP SDK
  *
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer - MCP SDK server instance
- * @param {import('../../notes/services/note.js').NoteService} noteService - Our existing note service
+ * @param {Object} mcpNoteService - Service layer for MCP notes
  */
 async function registerMcpTools (mcpServer, mcpNoteService) {
   const logger = createLogger()
@@ -25,7 +25,7 @@ async function registerMcpTools (mcpServer, mcpNoteService) {
 
     try {
       const { title, content } = params
-      const result = await mcpNoteService.createNote({ title, content })
+      const result = await mcpNoteService.createNoteWithValidation({ title, content })
 
       return {
         content: [{
@@ -38,7 +38,7 @@ async function registerMcpTools (mcpServer, mcpNoteService) {
         }]
       }
     } catch (error) {
-      logger.error('Error in create_mpc_note tool:', error)
+      logger.error('Error in create_mcp_note tool:', error)
       return {
         content: [{
           type: 'text',
@@ -60,7 +60,7 @@ async function registerMcpTools (mcpServer, mcpNoteService) {
 
     try {
       const { noteId } = params
-      const result = await mcpNoteService.getNoteById(noteId)
+      const result = await mcpNoteService.fetchNoteById(noteId)
 
       if (!result) {
         return {
@@ -100,12 +100,11 @@ ${result.details.content}`
   // List MCP Notes
   mcpServer.registerTool('list_mcp_notes', {
     description: 'List all available MCP notes with their metadata'
-  },
-  async function listMcpNotesHandler (params) {
-    logger.debug('Executing list_mcp_notes tool', { params })
+  }, async function () {
+    logger.debug('Executing list_mcp_notes tool')
 
     try {
-      const notes = await mcpNoteService.getAllNotes()
+      const notes = await mcpNoteService.fetchAllNotes()
 
       if (notes.length === 0) {
         return {
@@ -136,8 +135,7 @@ ${result.details.content}`
         isError: true
       }
     }
-  }
-  )
+  })
 
   // Delete MCP Note by ID
   mcpServer.registerTool('delete_mcp_note', {
@@ -150,8 +148,7 @@ ${result.details.content}`
 
     try {
       const { noteId } = params
-      const result = await mcpNoteService.deleteByNoteId(noteId)
-      console.log('Delete result:', result)
+      const result = await mcpNoteService.removeNoteById(noteId)
 
       if (!result) {
         return {

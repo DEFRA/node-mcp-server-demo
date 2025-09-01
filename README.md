@@ -42,21 +42,6 @@ You can start the application using either **Docker** or **npm**:
    - **MCP Endpoint**: [http://localhost:3000/mcp](http://localhost:3000/mcp)
    - **Health Check**: [http://localhost:3000/health](http://localhost:3000/health)
 
-### 3.2 Using npm
-
-1. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-2. For production mode:
-
-   ```bash
-   npm start
-   ```
-
----
 
 ## 4. Interacting with MCP Tools Using MCP Inspector
 
