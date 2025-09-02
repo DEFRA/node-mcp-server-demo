@@ -17,14 +17,26 @@ This prototype demonstrates the integration of the **Model Context Protocol (MCP
 
 ### 2.2 Environment Variables
 
-Create a `.env` file in the root of the project directory with the following variables:
+Copy `.env.example` to `.env` and configure the required variables:
+
+```bash
+cp .env.example .env
+```
+
+Then edit the `.env` file with your specific values. The required variables include:
 
 ```env
 NODE_ENV=development
 PORT=3000
 LOG_LEVEL=info
 MONGO_URI=mongodb://localhost:27017/mcp-prototype
+
+# MCP Transport Configuration - REQUIRED FOR SECURITY
+MCP_ALLOWED_HOSTS=127.0.0.1,localhost,localhost:3000,0.0.0.0,0.0.0.0:3000
+MCP_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://0.0.0.0:3000,http://localhost:6274,http://localhost:6277
 ```
+
+**Important Security Note**: The `MCP_ALLOWED_HOSTS` and `MCP_ALLOWED_ORIGINS` environment variables are required for security and must be explicitly configured. The application will not start without them.
 
 ---
 
@@ -44,11 +56,6 @@ You can start the application using  **Docker**:
    - **API Server**: [http://localhost:3000](http://localhost:3000)
    - **MCP Endpoint**: [http://localhost:3000/mcp](http://localhost:3000/mcp)
    - **Health Check**: [http://localhost:3000/health](http://localhost:3000/health)
-<<<<<<< HEAD
-
-=======
----
->>>>>>> 433fa523ed9e5fc7d9ce83c14fe1a2fb5b05f819
 
 ## 4. Interacting with MCP Tools Using MCP Inspector
 

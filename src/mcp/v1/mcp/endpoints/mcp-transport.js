@@ -4,7 +4,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js'
 import { registerMcpTools } from '../services/mcp-tools.js'
 import { createLogger } from '../../../../common/logging/logger.js'
-import { ALLOWED_HOSTS, ALLOWED_ORIGINS } from '../../../../constants/mcp-transport-config.js'
+import { getAllowedHosts, getAllowedOrigins } from '../../../../common/mcp/transport-config.js'
 
 // Session storage - in production, consider Redis or database
 const transports = {}
@@ -84,8 +84,8 @@ async function handleMcpTransport (request, h) {
         // Only enable DNS rebinding protection in production
         // This allows MCP inspector and other development tools to work properly
         enableDnsRebindingProtection: isProduction,
-        allowedHosts: ALLOWED_HOSTS,
-        allowedOrigins: ALLOWED_ORIGINS,
+        allowedHosts: getAllowedHosts(),
+        allowedOrigins: getAllowedOrigins(),
       })
 
       transport.onclose = () => {

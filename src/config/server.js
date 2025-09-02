@@ -113,6 +113,20 @@ const serverConfig = {
       default: true,
       env: 'MCP_ENABLED'
     },
+    transport: {
+      allowedHosts: {
+        doc: 'Comma-separated list of allowed hosts for MCP transport. Must be explicitly configured for security.',
+        format: String,
+        default: '',
+        env: 'MCP_ALLOWED_HOSTS'
+      },
+      allowedOrigins: {
+        doc: 'Comma-separated list of allowed origins for MCP transport. Must be explicitly configured for security.',
+        format: String,
+        default: '',
+        env: 'MCP_ALLOWED_ORIGINS'
+      }
+    }
   }
 }
 
