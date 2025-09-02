@@ -7,6 +7,7 @@ import { pulse } from './plugins/pulse.js'
 import { requestLogger } from './plugins/request-logger.js'
 import { requestTracing } from './plugins/request-tracing.js'
 import { mcpTransportPlugin } from './plugins/mcp-transport.js'
+import { closeDatabase } from '../common/database/mongo/mongo.js'
 
 import { probes as probesRouter } from './probes/probes.js'
 
@@ -46,6 +47,19 @@ async function createServer () {
     mcpTransportPlugin
   ])
 
+  //graceful shutdown
+  server.ext('onPostStop', async function stopServer() {
+    const logger = createLogger()
+    logger.info('Stopping server, closing database connections...')
+    
+    try {
+      await closeDatabase()
+      logger.info('Database connections closed successfully')
+    } catch (error) {
+      logger.error('Error closing database during server shutdown:', error)
+    }
+  })
+
   return server
 }
 
@@ -64,10 +78,14 @@ async function startServer () {
     const logger = createLogger()
     logger.info('Server failed to start :(')
     logger.error(error)
+
+    await closeDatabase()
   }
 
   return server
 }
+
+
 
 export {
   startServer
