@@ -47,11 +47,11 @@ async function createServer () {
     mcpTransportPlugin
   ])
 
-  //graceful shutdown
-  server.ext('onPostStop', async function stopServer() {
+  // graceful shutdown
+  server.ext('onPostStop', async function stopServer () {
     const logger = createLogger()
     logger.info('Stopping server, closing database connections...')
-    
+
     try {
       await closeDatabase()
       logger.info('Database connections closed successfully')
@@ -84,8 +84,6 @@ async function startServer () {
 
   return server
 }
-
-
 
 export {
   startServer

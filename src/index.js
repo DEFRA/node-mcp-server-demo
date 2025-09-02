@@ -13,10 +13,10 @@ const server = await startServer()
  * Graceful shutdown handler
  * @param {string} signal - The signal received (SIGTERM, SIGINT, etc.)
  */
-async function gracefulShutdown(signal) {
+async function gracefulShutdown (signal) {
   const logger = createLogger()
   logger.info(`${signal} received. Shutting down gracefully...`)
-  
+
   try {
     // Stop the server first (this will trigger onPostStop hook which closes the database)
     if (server) {
@@ -28,19 +28,19 @@ async function gracefulShutdown(signal) {
       // If no server, close database directly
       await closeDatabase()
     }
-    
+
     logger.info('Graceful shutdown completed')
     process.exit(0)
   } catch (error) {
     logger.error('Error during server shutdown:', error)
-    
+
     // Fallback: close database directly if server shutdown fails
     try {
       await closeDatabase()
     } catch (dbError) {
       logger.error('Error closing database:', dbError)
     }
-    
+
     process.exit(1)
   }
 }
@@ -53,7 +53,7 @@ process.on('unhandledRejection', async (error) => {
   const logger = createLogger()
   logger.info('Unhandled rejection')
   logger.error(error)
-  
+
   await closeDatabase()
   process.exitCode = 1
 })

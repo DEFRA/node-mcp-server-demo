@@ -12,7 +12,7 @@ let db = null
  * Retrieves the secure context for the MongoDB connection, if available.
  * @returns {Object|null} Secure context or null
  */
-function getMongoSecureContext() {
+function getMongoSecureContext () {
   try {
     return getSecureContext()
   } catch (error) {
@@ -25,25 +25,25 @@ function getMongoSecureContext() {
  * Connect to MongoDB and return database instance
  * @returns {Promise<Object>} MongoDB database instance
  */
-async function connectToDatabase() {
+async function connectToDatabase () {
   try {
     if (!mongoClient) {
       const secureContext = getMongoSecureContext()
       const mongoUri = config.get('mongo.uri')
-      
+
       mongoClient = new MongoClient(mongoUri, {
         connectTimeoutMS: 10000,
         retryWrites: false,
         readPreference: 'secondary',
         ...(secureContext && { secureContext })
       })
-      
+
       await mongoClient.connect()
       db = mongoClient.db(config.get('mongo.databaseName'))
-      
+
       logger.info('MongoDB client connected successfully')
     }
-    
+
     return db
   } catch (error) {
     logger.error('Error connecting to MongoDB:', error)
@@ -55,7 +55,7 @@ async function connectToDatabase() {
  * Close MongoDB connection
  * @returns {Promise<void>}
  */
-async function closeDatabase() {
+async function closeDatabase () {
   try {
     if (mongoClient) {
       logger.info('Closing MongoDB connection...')
