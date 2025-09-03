@@ -1,189 +1,96 @@
-# node-mcp-server-demo
+# 1. Node.js MCP Server Prototype
 
-Core delivery platform Node.js Backend Template.
+This prototype demonstrates the integration of the **Model Context Protocol (MCP)** with a **Hapi.js** backend server. Its primary aim is to explore how MCP tools can be effectively utilised within a JavaScript project. This prototype implements an MCP server for managing notes, leveraging **MongoDB** for storage. The project is designed to assess the feasibility of using MCP with JavaScript in practical, real-world scenarios.
 
-- [Requirements](#requirements)
-  - [Node.js](#nodejs)
-- [Local development](#local-development)
-  - [Setup](#setup)
-  - [Development](#development)
-  - [Production](#production)
-  - [Npm scripts](#npm-scripts)
-  - [Formatting](#formatting)
-- [API endpoints](#api-endpoints)
-- [Calling API endpoints](#calling-api-endpoints)
-  - [Postman](#postman)
-- [Docker](#docker)
-  - [Development Image](#development-image)
-  - [Production Image](#production-image)
-- [Licence](#licence)
-  - [About the licence](#about-the-licence)
+---
 
-## Requirements
+## 2. Setting Up Your Local Environment
 
-### Node.js
 
-Please install [Node.js](http://nodejs.org/) `>= v22` and [npm](https://nodejs.org/) `>= v9`. You will find it
-easier to use the Node Version Manager [nvm](https://github.com/creationix/nvm)
+### 2.1 Prerequisites
 
-To use the correct version of Node.js for this application, via nvm:
+- **Node.js**: Install [Node.js](http://nodejs.org/) `>= v22` and [npm](https://nodejs.org/) `>= v9`. Using [nvm](https://github.com/nvm-sh/nvm) is recommended for managing Node.js versions.
+- **MongoDB**: Ensure a MongoDB instance is running locally or accessible remotely.
+
+- **Docker**: Install [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/).
+
+
+### 2.2 Environment Variables
+
+Copy `.env.example` to `.env` and configure the required variables:
 
 ```bash
-cd node-mcp-server-demo
-nvm use
+cp .env.example .env
 ```
 
-## Local development
+Then edit the `.env` file with your specific values. The required variables include:
 
-### Setup
-Create a `.env` file in the root of the project directory.
+```env
+NODE_ENV=development
+PORT=3000
+LOG_LEVEL=info
+MONGO_URI=mongodb://localhost:27017/mcp-prototype
 
-```bash
-touch .env
+# MCP Transport Configuration - REQUIRED FOR SECURITY
+MCP_ALLOWED_HOSTS=127.0.0.1,localhost,localhost:3000,0.0.0.0,0.0.0.0:3000
+MCP_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://0.0.0.0:3000,http://localhost:6274,http://localhost:6277
 ```
 
-Install application dependencies:
+**Important Security Note**: The `MCP_ALLOWED_HOSTS` and `MCP_ALLOWED_ORIGINS` environment variables are required for security and must be explicitly configured. The application will not start without them.
 
-```bash
-npm install
-```
+---
 
-### Development
+## 3. Building and Running the Application
 
-To run the application in `development` mode run:
+You can start the application using  **Docker**:
 
-```bash
-npm run dev
-```
+### 3.1 Using Docker
 
-### Testing
+1. Build and start the application:
 
-To test the application run:
+   ```bash
+   docker compose up --build
+   ```
 
-```bash
-npm run test
-```
+2. Access the application:
+   - **API Server**: [http://localhost:3000](http://localhost:3000)
+   - **MCP Endpoint**: [http://localhost:3000/mcp](http://localhost:3000/mcp)
+   - **Health Check**: [http://localhost:3000/health](http://localhost:3000/health)
 
-### Production
+## 4. Interacting with MCP Tools Using MCP Inspector
 
-To mimic the application running in `production` mode locally run:
+The **MCP Inspector** is a graphical tool that allows users to interact with the MCP server and test its tools. Follow these steps to install and run the MCP Inspector in a separate terminal session:
 
-```bash
-npm start
-```
+### 4.1 Installing MCP Inspector
 
-### Npm scripts
+1. Open a new terminal session.
+2. Install the MCP Inspector globally using `npx`:
 
-All available Npm scripts can be seen in [package.json](./package.json)
-To view them in your command line run:
+   ```bash
+   npx @modelcontextprotocol/inspector
+   ```
 
-```bash
-npm run
-```
+### 4.2 Running MCP Inspector
 
-## Development helpers
+1. Start the MCP Inspector:
 
-### MongoDB Locks
+   ```bash
+   npx @modelcontextprotocol/inspector
+   ```
 
-If you require a write lock for Mongo you can acquire it via `server.locker` or `request.locker`:
+2. Open the Inspector URL in your browser (typically `http://localhost:6274/`).
+3. Configure the connection:
+   - **Transport Type**: HTTP
+   - **URL**: `http://localhost:3000/mcp`
 
-```javascript
-async function doStuff(server) {
-  const lock = await server.locker.lock('unique-resource-name')
+4. Use the Inspector interface to test the available MCP tools.
+   - Click on the tools tab and list the available tools.
 
-  if (!lock) {
-    // Lock unavailable
-    return
-  }
+---
 
-  try {
-    // do stuff
-  } finally {
-    await lock.free()
-  }
-}
-```
 
-Keep it small and atomic.
 
-You may use **using** for the lock resource management.
-Note test coverage reports do not like that syntax.
+## 5. Notes
 
-```javascript
-async function doStuff(server) {
-  await using lock = await server.locker.lock('unique-resource-name')
-
-  if (!lock) {
-    // Lock unavailable
-    return
-  }
-
-  // do stuff
-
-  // lock automatically released
-}
-```
-
-Helper methods are also available in `/src/helpers/mongo-lock.js`.
-
-## Docker
-
-### Development image
-
-Build:
-
-```bash
-docker build --target development --no-cache --tag node-mcp-server-demo:development .
-```
-
-Run:
-
-```bash
-docker run -e PORT=3000 -p 3000:3000 node-mcp-server-demo:development
-```
-
-### Production image
-
-Build:
-
-```bash
-docker build --no-cache --tag node-mcp-server-demo .
-```
-
-Run:
-
-```bash
-docker run -e PORT=3000 -p 3000:3000 node-mcp-server-demo
-```
-
-### Docker Compose
-
-A local environment with:
-
-- Localstack for AWS services (S3, SQS)
-- Redis
-- MongoDB
-- This service.
-- A commented out frontend example.
-
-```bash
-docker compose up --build -d
-```
-
-## Licence
-
-THIS INFORMATION IS LICENSED UNDER THE CONDITIONS OF THE OPEN GOVERNMENT LICENCE found at:
-
-<http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3>
-
-The following attribution statement MUST be cited in your products and applications when using this information.
-
-> Contains public sector information licensed under the Open Government license v3
-
-### About the licence
-
-The Open Government Licence (OGL) was developed by the Controller of Her Majesty's Stationery Office (HMSO) to enable
-information providers in the public sector to license the use and re-use of their information under a common open
-licence.
-
-It is designed to encourage use and re-use of information freely and flexibly, with only a few conditions.
+- This prototype is for demonstration purposes only and is not production-ready.
+- For security, ensure `NODE_ENV=production` is set in production environments.

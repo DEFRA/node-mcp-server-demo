@@ -75,7 +75,7 @@ const serverConfig = {
     databaseName: {
       doc: 'Database name for mongodb',
       format: String,
-      default: 'fcp-sfd-accelerator',
+      default: 'mcp-mongo-server-demo',
       env: 'MONGO_DATABASE'
     }
   },
@@ -104,6 +104,28 @@ const serverConfig = {
       format: String,
       default: 'x-cdp-request-id',
       env: 'TRACING_HEADER'
+    }
+  },
+  mcp: {
+    enabled: {
+      doc: 'Enable MCP server functionality',
+      format: Boolean,
+      default: true,
+      env: 'MCP_ENABLED'
+    },
+    transport: {
+      allowedHosts: {
+        doc: 'Comma-separated list of allowed hosts for MCP transport. Must be explicitly configured for security.',
+        format: String,
+        default: '',
+        env: 'MCP_ALLOWED_HOSTS'
+      },
+      allowedOrigins: {
+        doc: 'Comma-separated list of allowed origins for MCP transport. Must be explicitly configured for security.',
+        format: String,
+        default: '',
+        env: 'MCP_ALLOWED_ORIGINS'
+      }
     }
   }
 }
