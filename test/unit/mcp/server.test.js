@@ -15,6 +15,10 @@ vi.mock('../../../src/common/logging/logger.js', () => ({
   })
 }))
 
+vi.mock('../../../src/common/database/mongo/mongo.js', () => ({
+  closeDatabase: vi.fn()
+}))
+
 vi.mock('@hapi/hapi', () => {
   return {
     default: {
@@ -29,6 +33,7 @@ const mockServer = {
   start: vi.fn(),
   stop: vi.fn(),
   register: vi.fn(),
+  ext: vi.fn(),
   logger: mockLogger
 }
 
