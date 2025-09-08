@@ -167,3 +167,11 @@ __pycache__
 
 # === Rules for C++ development ===
 compile_commands.json
+
+# environmental variables
+.env
+
+# MCP Notes data (but keep README)
+/data/notes/*.txt
+!/data/notes/README.md
+MCP_INTEGRATION_GUIDE.md
